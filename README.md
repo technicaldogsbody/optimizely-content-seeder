@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/technicaldogsbody/optimizely-content-seeder/main/logo_and_title.png" alt="Content Seeder" width="240" />
-</p>
+![Content Seeder](https://raw.githubusercontent.com/technicaldogsbody/optimizely-content-seeder/main/logo_banner.png)
 
 # TechnicalDogsbody.Optimizely.ContentSeeder
 
