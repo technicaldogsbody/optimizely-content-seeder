@@ -1,0 +1,16 @@
+@using EPiServer.Framework.Modules
+@using TechnicalDogsbody.Optimizely.ContentSeeder.UI
+@inject IModuleResourceResolver ModuleResourceResolver
+@{
+    Layout = "~/Views/Shared/_ShellLayout.cshtml";
+    // Resolved via the CMS's own module-resource API rather than a hardcoded absolute prefix —
+    // that convention has already changed once (CMS 12's /EPiServer/{module}/... vs CMS 13's
+    // /Optimizely/{module}/{version}/ClientResources/...), and this stays correct across such changes.
+    var scriptSrc = ModuleResourceResolver.TryResolveClientPath(
+        typeof(ContentSeederController).Assembly, "assets/index.js", out var resolvedScriptSrc)
+        ? resolvedScriptSrc
+        : "assets/index.js";
+}
+<div id="root"></div>
+<script type="module" src="@scriptSrc"></script>
+

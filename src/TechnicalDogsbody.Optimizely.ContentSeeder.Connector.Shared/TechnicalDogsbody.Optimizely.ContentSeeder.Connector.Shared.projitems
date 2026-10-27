@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>5b1f0e42-7c1a-4d7e-9a53-2c8e4f6b7d10</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ContentSeederModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Definitions\SeedFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Definitions\SeedTreeFingerprint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\ServiceCollectionExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Infrastructure\ContentSeederHostedService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\BlockSeeder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentDeleter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentProperties.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentRepositoryMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\Cultures.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\DefinitionFingerprints.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\GenerationRunner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\InstanceNames.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ISectionSeeder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\LanguageTranslator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\NoSectionSeeder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\PageSeeder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ResumeIndex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\SaveActions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\SeedOrchestrator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\VideoApplier.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\Media\ContentHandleExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\Media\OptimizelyImageContentFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\Media\SeededFolders.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\Media\SeededMediaWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\Media\VideoProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\OptimizelyContentModelAdapter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\XhtmlRichTextConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\ContentSeederController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\ContentSeederMenuProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\ContentSeederPageController.cs" />
+  </ItemGroup>
+</Project>

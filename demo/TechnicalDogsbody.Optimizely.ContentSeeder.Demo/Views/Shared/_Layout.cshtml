@@ -1,0 +1,50 @@
+@inject EPiServer.Core.IContentLanguageAccessor LanguageAccessor
+@{
+    // The language being viewed: sets the page language and, for right-to-left scripts, the page direction.
+    var pageCulture = LanguageAccessor.Language;
+    var pageDirection = pageCulture.TextInfo.IsRightToLeft ? "rtl" : "ltr";
+}
+<!DOCTYPE html>
+<html lang="@pageCulture.Name" dir="@pageDirection">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121212" />
+    <title>@ViewData["Title"] · Content Seeder Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Oswald:wght@500;600;700&family=Noto+Sans+Arabic:wght@400;600&family=Noto+Sans+SC:wght@400;600&family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+KR:wght@400;600&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <required-client-resources area="Header" />
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/">
+                <span class="brand-mark" aria-hidden="true">CS</span>
+                <span class="brand-text">Content<span>Seeder - 13</span></span>
+                <span class="cursor" aria-hidden="true"></span>
+            </a>
+            <nav class="site-nav" aria-label="Main">
+                <a href="/">Home</a>
+                <a href="/optimizely/cms">CMS</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p class="mono prompt">&gt; dotnet seed --demo <span class="ok">ok</span><span class="cursor" aria-hidden="true"></span></p>
+            <p class="muted">Demo site for TechnicalDogsbody.Optimizely.ContentSeeder. Every word and image here was generated.</p>
+        </div>
+    </footer>
+
+    <required-client-resources area="Footer" />
+</body>
+</html>

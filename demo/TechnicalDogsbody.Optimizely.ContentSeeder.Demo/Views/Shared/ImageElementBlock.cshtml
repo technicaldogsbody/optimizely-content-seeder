@@ -1,0 +1,16 @@
+@model ImageElementBlock
+@{
+    var radius = ViewData.DisplaySetting("borderRadius", "small");
+    var shadow = ViewData.DisplaySetting("shadow", "none");
+}
+
+@if (!ContentReference.IsNullOrEmpty(Model.Image))
+{
+    <figure class="image-element radius-@radius shadow-@shadow">
+        <img src="@Url.ContentUrl(Model.Image)" alt="@Model.AltText" loading="lazy" />
+        @if (!string.IsNullOrWhiteSpace(Model.Caption))
+        {
+            <figcaption>@Model.Caption</figcaption>
+        }
+    </figure>
+}

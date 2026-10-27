@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- The CMS 12 packages are not in the central file, so this project does not use it (see the connector). -->
+    <NoWarn>$(NoWarn);NU1608;NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the CMS 12 connector: its shared code is compiled into it, so referencing the CMS 13 connector as well would
+         make the same type names ambiguous. -->
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.csproj" />
+    <!-- The CMS 12 assemblies the registration needs at runtime. They are the same versions the connector uses. -->
+    <PackageReference Include="EPiServer.CMS.Core" VersionOverride="12.24.0" />
+    <PackageReference Include="EPiServer.CMS.UI.Core" VersionOverride="12.24.0" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/demo/">
+    <File Path="demo/ContentSeederSource.props" />
+    <Project Path="demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.AppHost/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.AppHost.csproj" />
+    <Project Path="demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ServiceDefaults/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ServiceDefaults.csproj" />
+    <Project Path="demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.csproj" />
+    <Project Path="demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo12/TechnicalDogsbody.Optimizely.ContentSeeder.Demo12.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/TechnicalDogsbody.Optimizely.ContentSeeder.AI/TechnicalDogsbody.Optimizely.ContentSeeder.AI.csproj" />
+    <Project Path="src/TechnicalDogsbody.Optimizely.ContentSeeder/TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+    <Project Path="src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.csproj" />
+    <Project Path="src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.csproj" />
+    <Project Path="src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared.shproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests.csproj" />
+    <Project Path="tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj" />
+    <Project Path="tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests.csproj" />
+  </Folder>
+</Solution>

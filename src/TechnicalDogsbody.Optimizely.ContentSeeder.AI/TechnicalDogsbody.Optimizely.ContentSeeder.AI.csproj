@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- No EPiServer here, so the security pins for its transitive packages do not belong in this package's dependencies. -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder.AI</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.AI</AssemblyName>
+    <Description>Microsoft.Extensions.AI (IChatClient) content generation provider add-on for TechnicalDogsbody.Optimizely.ContentSeeder. Works with Ollama, Azure OpenAI, OpenAI, Gemini and any other IChatClient.</Description>
+    <PackageTags>optimizely;episerver;cms;seeding;ai;ichatclient;ollama;azure-openai</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <!-- Brings the OpenAI SDK and the IChatClient adapter for it (AsIChatClient), so OpenAI works without extra references. -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <!-- TechnicalDogsbody.MicroMediator 1.5.0 depends on Pkcs 10.0.0, which has advisories. Build against the patched release; not shipped as a dependency. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" PrivateAssets="all" />
+    <!-- Transitive version override -->
+    <PackageReference Include="MinVer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

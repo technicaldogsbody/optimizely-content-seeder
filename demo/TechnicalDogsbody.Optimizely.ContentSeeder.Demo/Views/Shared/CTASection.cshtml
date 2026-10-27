@@ -1,0 +1,30 @@
+@using System.Text.RegularExpressions
+@model CTASection
+@{
+    var bgStyle = ViewData.DisplaySetting("bgStyle", "gradient");
+    var textColor = ViewData.DisplaySetting("textColor", "light");
+
+    // Only a plain hex colour is passed through to CSS, so free text can't inject styles.
+    var color = Model.BackgroundColor is { } c && Regex.IsMatch(c, "^#[0-9a-fA-F]{3,8}$") ? c : null;
+}
+
+<section class="cta-section cta-@bgStyle cta-text-@textColor"
+         style="@(bgStyle == "solid" && color is not null ? $"--cta-color:{color}" : null)">
+    @if (!string.IsNullOrWhiteSpace(Model.Heading))
+    {
+        <h2>@Model.Heading</h2>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p class="description">@Model.Description</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ButtonText))
+    {
+        <a href="@(string.IsNullOrWhiteSpace(Model.ButtonUrl) ? "#" : Model.ButtonUrl)"
+           class="btn @(textColor == "dark" ? "btn-secondary" : "btn-primary") btn-lg"
+           target="@(Model.ButtonOpenInNewTab ? "_blank" : null)"
+           rel="@(Model.ButtonOpenInNewTab ? "noopener noreferrer" : null)">
+            @Model.ButtonText
+        </a>
+    }
+</section>

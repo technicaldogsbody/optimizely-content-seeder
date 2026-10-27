@@ -1,0 +1,35 @@
+@model ArticlePage
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<header class="page-intro">
+    <div class="container">
+        <span class="eyebrow">Article</span>
+        <h1>@(string.IsNullOrWhiteSpace(Model.Title) ? Model.Name : Model.Title)</h1>
+        @if (!string.IsNullOrEmpty(Model.Introduction))
+        {
+            <p class="lead">@Model.Introduction</p>
+        }
+        <p class="meta">
+            @if (!string.IsNullOrEmpty(Model.Author))
+            {
+                <span>By @Model.Author &middot; </span>
+            }
+            <time datetime="@Model.PublishedDate.ToString("yyyy-MM-dd")">@Model.PublishedDate.ToString("d MMM yyyy")</time>
+        </p>
+        @if (!ContentReference.IsNullOrEmpty(Model.HeroImage))
+        {
+            <img class="feature-image" src="@Url.ContentUrl(Model.HeroImage)" alt="" />
+        }
+    </div>
+</header>
+
+@if (Model.Body != null)
+{
+    <section class="page-section">
+        <div class="container">
+            <div class="prose rich-text">@Html.PropertyFor(m => m.Body)</div>
+        </div>
+    </section>
+}

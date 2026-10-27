@@ -1,0 +1,17 @@
+@model ButtonElementBlock
+@{
+    var variant = ViewData.DisplaySetting("variant", "primary");
+    var size = ViewData.DisplaySetting("size", "medium");
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ButtonText))
+{
+    <div>
+        <a href="@(string.IsNullOrWhiteSpace(Model.ButtonUrl) ? "#" : Model.ButtonUrl)"
+           class="btn btn-@variant btn-@size"
+           target="@(Model.OpenInNewTab ? "_blank" : null)"
+           rel="@(Model.OpenInNewTab ? "noopener noreferrer" : null)">
+            @Model.ButtonText <span aria-hidden="true">&rarr;</span>
+        </a>
+    </div>
+}

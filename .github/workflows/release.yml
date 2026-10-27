@@ -1,0 +1,133 @@
+name: Release
+
+# Run manually from the Actions tab, on main, after CI is green and the committed UI is up to date.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 1.0.0 or 1.0.0-beta.1'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark the GitHub Release as a prerelease'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write  # NuGet trusted publishing: lets this run ask nuget.org for a short-lived API key
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Test, pack, publish and release
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # MinVer and the tag check need full history
+
+      - name: Only release from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Releases must run from main (this run is $GITHUB_REF)."
+            exit 1
+          fi
+
+      - name: Validate version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a valid version (expected X.Y.Z or X.Y.Z-suffix)."
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists."
+            exit 1
+          fi
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/client/package-lock.json
+
+      - name: Build the UI and check it is committed
+        run: |
+          (cd src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/client && npm ci && npm run build)
+          if ! git diff --exit-code -- src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/wwwroot; then
+            echo "::error::The committed UI is stale. Run 'npm run build' in UI/client, commit UI/wwwroot, then release."
+            exit 1
+          fi
+
+      - name: Restore and build
+        run: |
+          dotnet restore tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj
+          dotnet build tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj --no-restore --configuration Release -p:MinVerVersionOverride=$VERSION
+
+      - name: Test
+        run: |
+          dotnet test tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj --no-build --configuration Release
+          dotnet test tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests.csproj --configuration Release
+          dotnet test tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests.csproj --configuration Release
+
+      # Packed without --no-build so the connectors are built for every target framework they declare (the CMS 12
+      # connector is not referenced by the test project, so it would otherwise have no build output).
+      - name: Pack (once; these exact files are published)
+        run: |
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder/TechnicalDogsbody.Optimizely.ContentSeeder.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=$VERSION
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.AI/TechnicalDogsbody.Optimizely.ContentSeeder.AI.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=$VERSION
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=$VERSION
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=$VERSION
+
+      - name: Check the package names match the version
+        run: |
+          pkgs=$(ls ./nupkg/*.$VERSION.nupkg 2>/dev/null | wc -l)
+          syms=$(ls ./nupkg/*.$VERSION.snupkg 2>/dev/null | wc -l)
+          total=$(ls ./nupkg | wc -l)
+          if [ "$pkgs" -ne 4 ] || [ "$syms" -ne 4 ] || [ "$total" -ne 8 ]; then
+            echo "::error::Expected 4 .nupkg and 4 .snupkg for $VERSION, found: $(ls ./nupkg | tr '\n' ' ')"
+            exit 1
+          fi
+
+      - name: Keep the packages with the run
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-v${{ inputs.version }}
+          path: ./nupkg/*
+
+      # Exchanges this run's OIDC token for a short-lived NuGet API key. Keep it directly before the push, because
+      # the key expires after one hour. The policy on nuget.org must name this repository and release.yml.
+      - name: NuGet login (trusted publishing)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}  # your nuget.org profile name, not your email address
+
+      - name: Push packages to nuget.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "./nupkg/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols
+          dotnet nuget push "./nupkg/*.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      # Last, so a failed NuGet push never leaves a tag and release behind. A rerun is safe: --skip-duplicate
+      # skips packages already on nuget.org, and the tag check above only fails once this step has created the tag.
+      - name: Create the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: v${{ inputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: ./nupkg/*

@@ -1,0 +1,16 @@
+@using EPiServer
+@model IContent
+@{
+    Layout = "_PreviewLayout";
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="preview-bar">
+    <span class="preview-label">Preview</span>
+    <strong>@Model.Name</strong>
+    <span class="muted">@(((IContentData)Model).GetOriginalType().Name)</span>
+</div>
+
+<div class="preview-stage">
+    @{ await Html.RenderContentDataAsync((IContentData)Model, true, Array.Empty<string>()); }
+</div>

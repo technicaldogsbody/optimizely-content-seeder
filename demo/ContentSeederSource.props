@@ -1,0 +1,50 @@
+<Project>
+
+  <!--
+    Chooses which copy of ContentSeeder the demos build against. It is a build-time choice:
+      false (default) references the source projects in this repository.
+      true            references the packages in ../local-packages (the packed output to test).
+    Change the default below, or override it for one build with -p:ContentSeederUseLocalPackages=true.
+    Restore and build both read this file, so the Aspire AppHost follows it too.
+  -->
+  <PropertyGroup>
+    <!-- The one switch for the demos. -->
+    <ContentSeederUseLocalPackages Condition="'$(ContentSeederUseLocalPackages)' == ''">false</ContentSeederUseLocalPackages>
+    <ContentSeederPackageVersion Condition="'$(ContentSeederPackageVersion)' == ''">0.1.0-rc.2</ContentSeederPackageVersion>
+  </PropertyGroup>
+
+  <!-- Record the build-time choice in the demo's assembly, so the running app can report which one it was built with. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ContentSeederUseLocalPackages</_Parameter1>
+      <_Parameter2>$(ContentSeederUseLocalPackages)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!--
+    Restore uses its own config in package mode. The root nuget.config clears its sources and maps
+    TechnicalDogsbody packages to nuget.org only, so a local folder cannot be added to it.
+  -->
+  <PropertyGroup Condition="'$(ContentSeederUseLocalPackages)' == 'true'">
+    <RestoreConfigFile>$(MSBuildThisFileDirectory)nuget.local-packages.config</RestoreConfigFile>
+  </PropertyGroup>
+
+  <!--
+    The module folder is generated on every build (module.config and the admin UI), from either the
+    project references or the packages. Keep it out of the default items so the build never tries to
+    copy files that the clean below has just removed.
+  -->
+  <ItemGroup>
+    <None Remove="modules\**" />
+    <Content Remove="modules\**" />
+  </ItemGroup>
+
+  <!--
+    Clear the generated folder first so files from the other mode don't linger.
+    Only the ContentSeeder subfolder is removed; licence files alongside it are left alone.
+  -->
+  <Target Name="ClearContentSeederModules" BeforeTargets="BeforeBuild">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder" />
+  </Target>
+
+</Project>

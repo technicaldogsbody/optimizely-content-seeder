@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit and integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # MinVer reads the version from tags
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/Directory.Packages.props') }}
+
+      - name: Restore
+        run: dotnet restore tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj --no-restore --configuration Release
+
+      - name: Test (unit)
+        run: >
+          dotnet test
+          tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=unit.trx"
+          --collect "XPlat Code Coverage"
+
+      - name: Test (CMS 12 connector)
+        run: >
+          dotnet test
+          tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests.csproj
+          --configuration Release
+          --logger "trx;LogFileName=connector12.trx"
+
+      - name: Test (integration)
+        run: >
+          dotnet test
+          tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests/TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests.csproj
+          --configuration Release
+          --logger "trx;LogFileName=integration.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: "**/*.trx"
+
+  ui-dist:
+    name: Committed UI matches its source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/client/package-lock.json
+
+      - name: Build the UI
+        working-directory: src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Fail if the committed UI is stale
+        run: |
+          if ! git diff --exit-code -- src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/wwwroot; then
+            echo "::error::The committed UI is stale. Run 'npm run build' in UI/client and commit UI/wwwroot."
+            exit 1
+          fi
+
+  pack-check:
+    name: Pack check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Packs all four packages. Building the CMS 12 connector here is the compile check for its target frameworks.
+      - name: Pack all packages
+        run: |
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder/TechnicalDogsbody.Optimizely.ContentSeeder.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=0.0.0-ci
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.AI/TechnicalDogsbody.Optimizely.ContentSeeder.AI.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=0.0.0-ci
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=0.0.0-ci
+          dotnet pack src/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.csproj --configuration Release --output ./nupkg -p:MinVerVersionOverride=0.0.0-ci
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-ci
+          path: ./nupkg/*

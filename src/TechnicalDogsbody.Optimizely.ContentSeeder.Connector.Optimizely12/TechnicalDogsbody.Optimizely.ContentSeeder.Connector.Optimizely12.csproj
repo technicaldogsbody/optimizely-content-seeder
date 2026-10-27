@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- The package accepts any CMS 12 release (the central file pins the CMS 13 line), so it manages its own EPiServer versions. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <!-- Building at the 12.19.0 floor restores that release's own transitive packages, which have advisories fixed in later CMS releases. They are not shipped by this package. -->
+    <NoWarn>$(NoWarn);NU1608;NU1902;NU1903</NoWarn>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12</AssemblyName>
+    <Description>Optimizely CMS 12 connector for TechnicalDogsbody.Optimizely.ContentSeeder: seeds pages, blocks and media into Optimizely CMS 12.</Description>
+    <PackageTags>optimizely;episerver;cms;seeding</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+  </ItemGroup>
+
+  <!-- The Optimizely seeding code, shared with the Optimizely 13 connector. -->
+  <Import Project="..\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared.projitems" Label="Shared" />
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Connector12.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPiServer.CMS.Core" Version="[12.19.0,13.0.0)" />
+    <PackageReference Include="EPiServer.CMS.UI.Core" Version="[12.19.0,13.0.0)" />
+    <PackageReference Include="MinVer" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!--
+    Module deployment: the targets file and module.config are packed under build/ so consumers pick them up. The shared
+    admin UI is packed by the core package.
+  -->
+  <ItemGroup>
+    <None Include="TechnicalDogsbody.Optimizely.ContentSeeder.targets"
+          Pack="true"
+          PackagePath="build/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.targets" />
+    <None Include="module.config"
+          Pack="true"
+          PackagePath="build/module.config" />
+  </ItemGroup>
+
+</Project>

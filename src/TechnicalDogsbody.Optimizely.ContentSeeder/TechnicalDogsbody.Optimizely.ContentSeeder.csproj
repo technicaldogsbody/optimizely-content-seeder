@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- No EPiServer here, so the security pins for its transitive packages do not belong in this package's dependencies. -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder</AssemblyName>
+    <Description>CMS-neutral core of ContentSeeder: definitions, fake-content generation, AI writing, the seed contracts and the shared admin UI. Use with an Optimizely connector.</Description>
+    <PackageTags>seeding;bogus;ai;content</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12</_Parameter1>
+    </AssemblyAttribute>
+    <!-- Lets Moq proxy the internal ISeedOrchestrator seam in unit tests. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="Dapper" />
+    <!-- Each target takes the matching release, so the package does not push a net8 site onto 10.x. -->
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="8.0.0" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="9.0.0" Condition="'$(TargetFramework)' == 'net9.0'" />
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="10.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <PackageReference Include="TechnicalDogsbody.MicroMediator" />
+    <!-- TechnicalDogsbody.MicroMediator 1.5.0 depends on Pkcs 10.0.0, which has advisories. Build against the patched release; not shipped as a dependency. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" PrivateAssets="all" />
+    <PackageReference Include="MinVer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- The shared admin UI: its build and copy targets, and the built assets. -->
+  <ItemGroup>
+    <None Include="TechnicalDogsbody.Optimizely.ContentSeeder.targets"
+          Pack="true"
+          PackagePath="build/TechnicalDogsbody.Optimizely.ContentSeeder.targets" />
+    <None Include="UI\wwwroot\**\*"
+          Pack="true"
+          PackagePath="contentFiles/any/any/UI/wwwroot/" />
+    <None Include="UI\wwwroot\ContentSeeder\**\*"
+          Pack="true"
+          PackagePath="build/UI/wwwroot/ContentSeeder/" />
+  </ItemGroup>
+
+</Project>

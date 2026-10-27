@@ -1,0 +1,12 @@
+@model RichTextElementBlock
+@{
+    var fontSize = ViewData.DisplaySetting("fontSize", "normal");
+    var alignment = ViewData.DisplaySetting("alignment", "left");
+}
+
+<div class="rich-text rich-text-@fontSize text-@alignment">
+    @if (Model.Body != null)
+    {
+        @Html.Raw(Model.Body.ToString())
+    }
+</div>

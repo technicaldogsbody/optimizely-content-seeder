@@ -1,0 +1,47 @@
+<Project>
+  <!--
+    TechnicalDogsbody.Optimizely.ContentSeeder
+    MSBuild targets for the shared React admin UI. Builds the client, then copies the built assets into the consuming project's
+    modules/_protected/ folder so EPiServer serves them under /EPiServer/TechnicalDogsbody.Optimizely.ContentSeeder/.
+    Every CMS connector uses the same UI, so these targets live with the core.
+  -->
+
+  <!-- Build the React UI only when asked (ContentSeederBuildUI=true). An ordinary build leaves the committed UI alone: it
+       rewrites UI/wwwroot, and CI rebuilds and diffs that folder on its own. Run npm run build in UI/client to update it. -->
+  <Target Name="BuildContentSeederUI"
+          BeforeTargets="Build"
+          Condition="'$(ContentSeederBuildUI)' == 'true' And Exists('$(MSBuildThisFileDirectory)UI\client\package.json')">
+    <Message Text="Building ContentSeeder React UI..." Importance="high" />
+    <Exec Command="npm ci --prefer-offline"
+          WorkingDirectory="$(MSBuildThisFileDirectory)UI\client"
+          ConsoleToMSBuild="true" />
+    <Exec Command="npm run build"
+          WorkingDirectory="$(MSBuildThisFileDirectory)UI\client"
+          ConsoleToMSBuild="true" />
+  </Target>
+
+  <!-- Copy built UI assets into the consuming project's modules/_protected/ so EPiServer serves -->
+  <!-- them under /EPiServer/TechnicalDogsbody.Optimizely.ContentSeeder/, preserving the shell chrome. -->
+  <Target Name="CopyContentSeederUIToModule"
+          AfterTargets="Build"
+          Condition="Exists('$(MSBuildThisFileDirectory)UI\wwwroot\ContentSeeder\assets\index.js')">
+
+    <PropertyGroup>
+      <ContentSeederModuleUIDir>$(MSBuildProjectDirectory)\modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\</ContentSeederModuleUIDir>
+    </PropertyGroup>
+
+    <Message Text="Copying ContentSeeder UI to $(ContentSeederModuleUIDir)" Importance="normal" />
+
+    <ItemGroup>
+      <ContentSeederUIFiles Include="$(MSBuildThisFileDirectory)UI\wwwroot\ContentSeeder\**\*" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(ContentSeederModuleUIDir)" />
+
+    <Copy SourceFiles="@(ContentSeederUIFiles)"
+          DestinationFiles="@(ContentSeederUIFiles->'$(ContentSeederModuleUIDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="true" />
+  </Target>
+
+</Project>

@@ -1,0 +1,27 @@
+@model HeroBlock
+
+<section class="hero hero-height-large">
+    @if (!ContentReference.IsNullOrEmpty(Model.BackgroundImage))
+    {
+        <img class="hero-bg" src="@Url.ContentUrl(Model.BackgroundImage)" alt="" />
+    }
+    <div class="container">
+        <div class="hero-content">
+            <span class="eyebrow">Welcome</span>
+            @if (!string.IsNullOrEmpty(Model.Heading))
+            {
+                <h1>@Model.Heading</h1>
+            }
+            @if (!string.IsNullOrEmpty(Model.SubHeading))
+            {
+                <p class="tagline">@Model.SubHeading</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.CtaText))
+            {
+                <a href="@(string.IsNullOrEmpty(Model.CtaUrl) ? "#" : Model.CtaUrl)" class="btn btn-primary btn-lg">
+                    @Model.CtaText <span aria-hidden="true">&rarr;</span>
+                </a>
+            }
+        </div>
+    </div>
+</section>

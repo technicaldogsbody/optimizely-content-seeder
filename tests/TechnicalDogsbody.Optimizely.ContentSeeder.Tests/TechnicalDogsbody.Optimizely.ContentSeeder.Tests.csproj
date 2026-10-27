@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder.Tests</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Castle.Core version conflict: Moq 4.20+ requires >= 5.1.1; EPiServer.CMS.Core 12 requires < 5.0.0. -->
+    <!-- Castle.Core 5.x is backwards-compatible for EPiServer usage in tests. -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.csproj" />
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.AI\TechnicalDogsbody.Optimizely.ContentSeeder.AI.csproj" />
+    <!-- SDKs and their IChatClient adapters, used only to verify the generic provider against them. -->
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

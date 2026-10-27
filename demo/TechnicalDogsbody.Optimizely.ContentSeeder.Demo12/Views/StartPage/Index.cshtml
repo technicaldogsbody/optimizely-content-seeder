@@ -1,0 +1,85 @@
+@using EPiServer.Filters
+@model StartPage
+@inject EPiServer.IContentLoader ContentLoader
+@{
+    ViewData["Title"] = Model.Name;
+
+    var children = FilterForVisitor.Filter(ContentLoader.GetChildren<PageData>(Model.ContentLink))
+        .OfType<PageData>()
+        .ToList();
+    var articles = children.OfType<ArticlePage>().ToList();
+    var listings = children.OfType<ArticleListingPage>().ToList();
+    var products = children.OfType<ProductPage>().ToList();
+}
+
+@if (Model.HeroArea != null)
+{
+    @Html.PropertyFor(m => m.HeroArea)
+}
+
+@if (Model.PromoArea != null)
+{
+    <section class="page-section">
+        <div class="container">
+            <span class="eyebrow">Promotions</span>
+            <h2>Worth a look</h2>
+            @Html.PropertyFor(m => m.PromoArea, new { CssClass = "card-grid" })
+        </div>
+    </section>
+}
+
+@if (articles.Count > 0)
+{
+    <section class="page-section">
+        <div class="container">
+            <span class="eyebrow">Articles</span>
+            <h2>Latest writing</h2>
+            @foreach (var listing in listings)
+            {
+                <p><a class="btn btn-primary" href="@Url.ContentUrl(listing.ContentLink)">All articles &rarr;</a></p>
+            }
+            <div class="card-grid">
+                @foreach (var article in articles.OrderByDescending(a => a.PublishedDate))
+                {
+                    <a class="card" href="@Url.ContentUrl(article.ContentLink)">
+                        @if (!ContentReference.IsNullOrEmpty(article.HeroImage))
+                        {
+                            <img class="card-media" src="@Url.ContentUrl(article.HeroImage)" alt="" loading="lazy" />
+                        }
+                        <div class="card-body">
+                            <span class="card-kicker">@article.PublishedDate.ToString("d MMM yyyy")</span>
+                            <h3>@(string.IsNullOrWhiteSpace(article.Title) ? article.Name : article.Title)</h3>
+                            <p>@article.Introduction</p>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (products.Count > 0)
+{
+    <section class="page-section">
+        <div class="container">
+            <span class="eyebrow">Products</span>
+            <h2>In the shop</h2>
+            <div class="card-grid">
+                @foreach (var product in products)
+                {
+                    <a class="card" href="@Url.ContentUrl(product.ContentLink)">
+                        @if (!ContentReference.IsNullOrEmpty(product.ProductImage))
+                        {
+                            <img class="card-media" src="@Url.ContentUrl(product.ProductImage)" alt="" loading="lazy" />
+                        }
+                        <div class="card-body">
+                            <span class="card-kicker">@product.Price.ToString("C")</span>
+                            <h3>@(string.IsNullOrWhiteSpace(product.ProductName) ? product.Name : product.ProductName)</h3>
+                            <p class="stock @(product.InStock ? "stock--in" : "stock--out")">@(product.InStock ? "In stock" : "Out of stock")</p>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}

@@ -1,0 +1,4 @@
+# The admin UI is built and committed, and CI rebuilds it on Linux and diffs it. Keep its line endings LF on every
+# platform so a Windows checkout produces the same bytes CI does.
+src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/client/** text eol=lf
+src/TechnicalDogsbody.Optimizely.ContentSeeder/UI/wwwroot/** text eol=lf

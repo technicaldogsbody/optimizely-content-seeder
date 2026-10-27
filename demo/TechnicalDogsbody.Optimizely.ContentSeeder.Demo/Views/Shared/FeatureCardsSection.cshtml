@@ -1,0 +1,17 @@
+@model FeatureCardsSection
+@{
+    var cardStyle = ViewData.DisplaySetting("cardStyle", "flat");
+    var textAlign = ViewData.DisplaySetting("textAlign", "left");
+}
+
+<section class="feature-intro feature-@cardStyle text-@textAlign">
+    <span class="eyebrow">Features</span>
+    @if (!string.IsNullOrWhiteSpace(Model.Heading))
+    {
+        <h2>@Model.Heading</h2>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p class="muted">@Model.Description</p>
+    }
+</section>

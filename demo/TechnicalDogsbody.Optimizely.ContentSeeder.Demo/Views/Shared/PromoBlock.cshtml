@@ -1,0 +1,23 @@
+@model PromoBlock
+
+<article class="card">
+    @if (!ContentReference.IsNullOrEmpty(Model.Image))
+    {
+        <img class="card-media" src="@Url.ContentUrl(Model.Image)" alt="" loading="lazy" />
+    }
+    <div class="card-body">
+        <span class="card-kicker">Promo</span>
+        @if (!string.IsNullOrEmpty(Model.Title))
+        {
+            <h3>@Model.Title</h3>
+        }
+        @if (Model.Body != null)
+        {
+            <div class="rich-text muted" style="flex:1">@Html.PropertyFor(m => m.Body)</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.LinkUrl))
+        {
+            <div><a href="@Model.LinkUrl" class="btn btn-tertiary">Read more</a></div>
+        }
+    </div>
+</article>

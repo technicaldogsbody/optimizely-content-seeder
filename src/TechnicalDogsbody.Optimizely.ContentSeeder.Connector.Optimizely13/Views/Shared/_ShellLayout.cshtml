@@ -1,0 +1,33 @@
+@using EPiServer.Framework.Modules
+@using EPiServer.Framework.Web.Resources
+@using EPiServer.Shell.Navigation
+@using TechnicalDogsbody.Optimizely.ContentSeeder.UI
+@addTagHelper *, EPiServer.Shell.UI
+@inject IModuleResourceResolver ModuleResourceResolver
+@{
+    // Resolved via the CMS's own module-resource API — see Index.cshtml for why this isn't a
+    // hardcoded absolute path.
+    var stylesheetHref = ModuleResourceResolver.TryResolveClientPath(
+        typeof(ContentSeederController).Assembly, "assets/index.css", out var resolvedStylesheetHref)
+        ? resolvedStylesheetHref
+        : "assets/index.css";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @ClientResources.RenderResources("ShellCore")
+    @ClientResources.RenderResources("ShellCoreLightTheme")
+    <link rel="stylesheet" href="@stylesheetHref" />
+    <title>Content Seeder</title>
+</head>
+<body>
+    @Html.AntiForgeryToken()
+    <platform-navigation></platform-navigation>
+    <platform-navigation-wrapper>
+        @RenderBody()
+    </platform-navigation-wrapper>
+</body>
+</html>

@@ -1,0 +1,37 @@
+@model LandingPageExperience
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<header class="page-intro">
+    <div class="container">
+        <span class="eyebrow">Landing page</span>
+        <h1>@(string.IsNullOrWhiteSpace(Model.Heading) ? Model.Name : Model.Heading)</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Tagline))
+        {
+            <p class="lead">@Model.Tagline</p>
+        }
+        @if (!ContentReference.IsNullOrEmpty(Model.HeroImage))
+        {
+            <img class="feature-image" src="@Url.ContentUrl(Model.HeroImage)" alt="" />
+        }
+    </div>
+</header>
+
+@* Structural sections (e.g. BlankSection) use the inline epi-grid template; leaf sections placed
+   directly in the outline (e.g. HeroSection) render through the root epi-component. *@
+@* A language version with no layout yet (e.g. a page an editor just translated) has nothing to render,
+   and the outline tag helper throws on a null layout. *@
+@if (Model.Layout is not null)
+{
+    <epi-outline class="vb-experience" experience="@Model">
+        <epi-grid class="vb-section">
+            <epi-row class="vb-row">
+                <epi-column class="vb-column">
+                    <epi-component class="vb-component" />
+                </epi-column>
+            </epi-row>
+        </epi-grid>
+        <epi-component class="vb-root-component" />
+    </epi-outline>
+}

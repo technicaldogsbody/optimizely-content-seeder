@@ -1,0 +1,18 @@
+@model TeaserBlock
+
+<div class="teaser">
+    @if (!ContentReference.IsNullOrEmpty(Model.ThumbnailImage))
+    {
+        <img src="@Url.ContentUrl(Model.ThumbnailImage)" alt="" loading="lazy" />
+    }
+    <div>
+        @if (!string.IsNullOrEmpty(Model.Heading))
+        {
+            <h4>@Model.Heading</h4>
+        }
+        @if (!string.IsNullOrEmpty(Model.Summary))
+        {
+            <p>@Model.Summary</p>
+        }
+    </div>
+</div>

@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13
+    MSBuild targets. Deploys module.config to modules/_protected/ so EPiServer discovers the module. The shared admin UI is
+    deployed by TechnicalDogsbody.Optimizely.ContentSeeder.targets in the core package.
+  -->
+
+  <!-- Deploy the module.config into the consuming project's modules/_protected/ folder.  -->
+  <!-- EPiServer reads this plain file to discover the assembly and register menu providers. -->
+  <Target Name="CopyContentSeederModuleConfig"
+          BeforeTargets="Build"
+          Condition="Exists('$(MSBuildThisFileDirectory)module.config')">
+
+    <PropertyGroup>
+      <ContentSeederModuleDir>$(MSBuildProjectDirectory)\modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\</ContentSeederModuleDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(ContentSeederModuleDir)" />
+
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)module.config"
+          DestinationFolder="$(ContentSeederModuleDir)"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="true" />
+  </Target>
+
+</Project>

@@ -1,0 +1,13 @@
+@model StatisticElementBlock
+@{
+    var color = ViewData.DisplaySetting("numberColor", "primary");
+    var size = ViewData.DisplaySetting("size", "small");
+}
+
+<div class="statistic stat-@color stat-@size">
+    <span class="value">@Model.Value</span>
+    @if (!string.IsNullOrWhiteSpace(Model.Label))
+    {
+        <span class="label">@Model.Label</span>
+    }
+</div>

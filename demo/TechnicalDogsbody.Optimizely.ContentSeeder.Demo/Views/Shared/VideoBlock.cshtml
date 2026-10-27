@@ -1,0 +1,43 @@
+@using TechnicalDogsbody.Optimizely.ContentSeeder.Providers.Media
+@model VideoBlock
+@{
+    var aspect = ViewData.DisplaySetting("aspectRatio", "widescreen");
+    var autoplay = ViewData.DisplaySettingEnabled("autoplay");
+
+    // An uploaded file wins. Otherwise YouTube and Vimeo links become an iframe; anything else is a plain link.
+    var hasFile = !ContentReference.IsNullOrEmpty(Model.Video);
+    var known = VideoUrls.TryParse(Model.VideoUrl, out var reference);
+    var embedUrl = known && autoplay ? $"{reference!.EmbedUrl}?autoplay=1&mute=1" : reference?.EmbedUrl;
+}
+
+@if (hasFile || !string.IsNullOrWhiteSpace(Model.VideoUrl))
+{
+    <figure class="video-element">
+        @if (hasFile)
+        {
+            <div class="video-frame aspect-@aspect">
+                <video controls preload="metadata" playsinline @(autoplay ? "autoplay muted loop" : "")>
+                    <source src="@Url.ContentUrl(Model.Video)" type="video/mp4" />
+                </video>
+            </div>
+        }
+        else if (known)
+        {
+            <div class="video-frame aspect-@aspect">
+                <iframe src="@embedUrl" title="@(Model.Caption ?? "Video")" loading="lazy"
+                        allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        }
+        else
+        {
+            <a class="video-frame aspect-@aspect" href="@Model.VideoUrl" target="_blank" rel="noopener noreferrer">
+                <span class="play" aria-hidden="true">&#9654;</span>
+                <span class="sr-only">Watch video</span>
+            </a>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Caption))
+        {
+            <figcaption>@Model.Caption</figcaption>
+        }
+    </figure>
+}

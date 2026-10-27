@@ -1,0 +1,377 @@
+/*
+ * Content Seeder admin UI.
+ * Colours, type and radii follow Optimizely's Axiom design system as shipped in the CMS shell
+ * (EPiServer.Shell ClientResources/axiom/styles.css). The TechnicalDogsbody orange and mono
+ * "READY." motif are kept to a small signature so the page still feels native to the CMS.
+ * Everything is scoped under .cs-app so nothing leaks into the surrounding shell.
+ */
+
+.cs-app {
+    --cs-blue: #0037ff;
+    --cs-blue-hover: #1a4bff;
+    --cs-blue-tint: #e6ebff;
+    --cs-blue-tint-2: #f0f3ff;
+    --cs-blue-line: #b3c3ff;
+    --cs-navy: #080736;
+    --cs-text: #262626;
+    --cs-muted: #707070;
+    --cs-line: #d6d6d6;
+    --cs-line-soft: #e6e6e6;
+    --cs-canvas: #f5f5f5;
+    --cs-surface: #ffffff;
+    --cs-danger: #f33030;
+    --cs-danger-tint: #fff0f0;
+    --cs-success: #4cae4f;
+    --cs-success-tint: #eef8ee;
+    --cs-warning: #ffc105;
+    --cs-warning-tint: #fff8e1;
+    --cs-tdb-orange: #f07d26;
+    --cs-radius: 5px;
+    --cs-font: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --cs-mono: Hack, "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: 32px 16px 48px;
+    background: var(--cs-canvas);
+    color: var(--cs-text);
+    font-family: var(--cs-font);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.cs-app *, .cs-app *::before, .cs-app *::after { box-sizing: border-box; }
+
+.cs-app h1, .cs-app h2, .cs-app p { margin: 0; }
+.cs-app a { color: var(--cs-blue); }
+.cs-app a:hover { color: var(--cs-blue-hover); }
+
+.cs-shell {
+    max-width: 880px;
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+
+.cs-muted { color: var(--cs-muted); }
+.cs-small { font-size: 13px; }
+.cs-mono { font-family: var(--cs-mono); }
+.cs-error-text { color: #b3261e; word-break: break-word; }
+.cs-warning-text { color: #8a6500; }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.cs-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 8px;
+}
+.cs-eyebrow {
+    color: var(--cs-blue) !important;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.cs-title {
+    color: var(--cs-navy);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 2px 0 4px !important;
+}
+.cs-subtitle { color: var(--cs-muted); }
+
+.cs-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.cs-pill--idle { background: #ebebeb; color: #484848; }
+.cs-pill--running { background: var(--cs-blue-tint); color: var(--cs-blue); }
+.cs-pill--danger { background: var(--cs-danger-tint); color: #b3261e; }
+
+.cs-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: cs-pulse 1.4s ease-in-out infinite;
+}
+@keyframes cs-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .35; transform: scale(.75); }
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+
+.cs-card {
+    background: var(--cs-surface);
+    border: 1px solid var(--cs-line);
+    border-radius: var(--cs-radius);
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+}
+.cs-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.cs-card h2 {
+    color: var(--cs-navy);
+    font-size: 16px;
+    font-weight: 600;
+}
+.cs-skeleton { color: var(--cs-muted); }
+
+/* ── Live operation ──────────────────────────────────────────────────────── */
+
+.cs-operation {
+    border-color: var(--cs-blue-line);
+    background: var(--cs-blue-tint-2);
+    gap: 10px;
+}
+.cs-operation__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--cs-navy);
+}
+.cs-progress {
+    position: relative;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--cs-blue-tint);
+    overflow: hidden;
+}
+.cs-progress__bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 35%;
+    border-radius: 2px;
+    background: var(--cs-blue);
+    animation: cs-indeterminate 1.4s ease-in-out infinite;
+}
+@keyframes cs-indeterminate {
+    0% { left: -35%; }
+    100% { left: 100%; }
+}
+
+/* ── Stats ───────────────────────────────────────────────────────────────── */
+
+.cs-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.cs-stat {
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    padding: 14px 16px;
+    border: 1px solid var(--cs-line-soft);
+    border-radius: var(--cs-radius);
+    background: #fafafa;
+}
+.cs-stat__label {
+    color: var(--cs-muted);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.cs-stat__value {
+    color: var(--cs-navy);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.cs-stat__value--text { font-size: 18px; padding-top: 6px; }
+
+/* Replays whenever the value changes (the element is re-keyed on its value). */
+.cs-bump { animation: cs-bump .6s ease-out; border-radius: 3px; }
+@keyframes cs-bump {
+    0% { color: var(--cs-blue); background: var(--cs-blue-tint); }
+    100% { color: var(--cs-navy); background: transparent; }
+}
+
+.cs-delta { font-size: 12px; font-weight: 500; }
+.cs-delta--up { color: #2e7d32; }
+.cs-delta--down { color: #b3261e; }
+
+.cs-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    margin: 0;
+}
+.cs-meta > div { display: flex; align-items: center; gap: 8px; }
+.cs-meta dt { color: var(--cs-muted); }
+.cs-meta dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cs-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 1px solid var(--cs-line);
+    border-radius: 3px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    color: #484848;
+}
+.cs-badge--on { border-color: var(--cs-blue-line); background: var(--cs-blue-tint); color: var(--cs-blue); }
+
+/* ── Callouts ────────────────────────────────────────────────────────────── */
+
+.cs-callout {
+    display: grid;
+    gap: 2px;
+    padding: 12px 16px;
+    border: 1px solid;
+    border-left-width: 4px;
+    border-radius: var(--cs-radius);
+}
+.cs-callout--success { border-color: #b9dfba; border-left-color: var(--cs-success); background: var(--cs-success-tint); }
+.cs-callout--danger { border-color: #f9c4c4; border-left-color: var(--cs-danger); background: var(--cs-danger-tint); }
+.cs-callout--warning { border-color: #ffe08a; border-left-color: var(--cs-warning); background: var(--cs-warning-tint); }
+.cs-callout--info { border-color: var(--cs-blue-line); border-left-color: var(--cs-blue); background: var(--cs-blue-tint-2); }
+.cs-callout__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.cs-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cs-badge--info { border-color: var(--cs-blue-line); background: var(--cs-blue-tint); color: var(--cs-blue); }
+.cs-badge--inline { margin-left: 8px; vertical-align: 1px; }
+
+/* ── Actions ─────────────────────────────────────────────────────────────── */
+
+.cs-actions { display: grid; }
+.cs-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+}
+.cs-action + .cs-action { border-top: 1px solid var(--cs-line-soft); }
+.cs-action:first-child { padding-top: 0; }
+.cs-action:last-child { padding-bottom: 0; }
+.cs-action strong { color: var(--cs-navy); }
+
+.cs-button {
+    flex-shrink: 0;
+    min-width: 112px;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--cs-radius);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s, color .15s;
+}
+.cs-button:focus-visible { outline: 2px solid var(--cs-blue); outline-offset: 2px; }
+.cs-button:disabled { cursor: not-allowed; opacity: .45; }
+.cs-button--primary { background: var(--cs-blue); border-color: var(--cs-blue-hover); color: #fff; }
+.cs-button--primary:hover:not(:disabled) { background: var(--cs-blue-hover); }
+.cs-button--secondary { background: #fff; border-color: var(--cs-blue); color: var(--cs-blue); }
+.cs-button--secondary:hover:not(:disabled) { background: var(--cs-blue-tint-2); }
+.cs-button--ghost { background: #fff; border-color: var(--cs-line); color: var(--cs-text); }
+.cs-button--ghost:hover:not(:disabled) { border-color: #a8a8a8; }
+.cs-button--danger { background: #fff; border-color: var(--cs-danger); color: #d42020; }
+.cs-button--danger:hover:not(:disabled) { background: var(--cs-danger-tint); }
+.cs-button--danger-solid { background: var(--cs-danger); border-color: #d42020; color: #fff; }
+.cs-button--danger-solid:hover:not(:disabled) { background: #d42020; }
+
+/* ── Dialog ──────────────────────────────────────────────────────────────── */
+
+.cs-dialog {
+    width: min(440px, calc(100vw - 32px));
+    padding: 24px;
+    border: 0;
+    border-radius: var(--cs-radius);
+    box-shadow: 0 12px 40px rgba(8, 7, 54, .25);
+    color: var(--cs-text);
+    font-family: var(--cs-font);
+}
+.cs-dialog::backdrop { background: rgba(8, 7, 54, .45); }
+.cs-dialog h2 { margin: 0 0 8px; color: var(--cs-navy); font-size: 18px; font-weight: 600; }
+.cs-dialog p { margin: 0 0 8px; }
+.cs-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.cs-table { width: 100%; border-collapse: collapse; }
+.cs-table th, .cs-table td { padding: 8px 12px; border-bottom: 1px solid var(--cs-line-soft); text-align: left; }
+.cs-table thead th { color: var(--cs-muted); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.cs-table tfoot th, .cs-table tfoot td { border-bottom: 0; font-weight: 600; }
+.cs-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+
+/* ── Footer — the TechnicalDogsbody signature ────────────────────────────── */
+
+.cs-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    color: var(--cs-muted);
+    font-size: 13px;
+}
+.cs-footer a { color: var(--cs-text); font-weight: 500; text-decoration-color: var(--cs-tdb-orange); text-underline-offset: 3px; }
+.cs-footer a:hover { color: var(--cs-tdb-orange); }
+.cs-ready { font-family: var(--cs-mono); color: var(--cs-navy); letter-spacing: .05em; }
+.cs-cursor {
+    display: inline-block;
+    width: .6em;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: -.15em;
+    background: var(--cs-tdb-orange);
+    animation: cs-blink 1.1s steps(1) infinite;
+}
+@keyframes cs-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-pulse, .cs-cursor, .cs-progress__bar, .cs-bump { animation: none; }
+    .cs-progress__bar { width: 100%; }
+}
+
+@media (max-width: 560px) {
+    .cs-app { padding-top: 20px; }
+    .cs-action { flex-direction: column; align-items: stretch; }
+    .cs-button { width: 100%; }
+}
+
+
+/* Seed definition picker */
+.cs-field { display: flex; flex-direction: column; gap: 4px; min-width: 240px; }
+.cs-field label { font-size: 0.8125rem; color: var(--cs-muted); }
+.cs-select {
+  font: inherit;
+  color: var(--cs-text);
+  background: var(--cs-surface);
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  padding: 8px 10px;
+}
+.cs-select:focus-visible { outline: 2px solid var(--cs-blue); outline-offset: 1px; }
+.cs-select:disabled { color: var(--cs-muted); background: var(--cs-canvas); }
+.cs-scope-note { margin: 0; }

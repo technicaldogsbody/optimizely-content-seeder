@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <Import Project="..\ContentSeederSource.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder.Demo12</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.Demo12</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>contentseeder-demo12</UserSecretsId>
+    <!-- Demo (CMS 13) builds the shared UI; this demo copies the same bundle. -->
+    <ContentSeederBuildUI>false</ContentSeederBuildUI>
+    <!-- The demo uses CMS 12 packages, so it does not use the central file, which pins the CMS 13 line. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <NoWarn>$(NoWarn);NU1608;NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+
+  <!-- ContentSeeder comes from the source projects, or from ../local-packages when ContentSeederUseLocalPackages=true. -->
+  <ItemGroup Condition="'$(ContentSeederUseLocalPackages)' != 'true'">
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12.csproj" />
+    <ProjectReference Include="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.AI\TechnicalDogsbody.Optimizely.ContentSeeder.AI.csproj" />
+  </ItemGroup>
+
+  <!-- This project does not use central package management, so the versions are set here. -->
+  <ItemGroup Condition="'$(ContentSeederUseLocalPackages)' == 'true'">
+    <PackageReference Include="TechnicalDogsbody.Optimizely.ContentSeeder" Version="$(ContentSeederPackageVersion)" />
+    <PackageReference Include="TechnicalDogsbody.Optimizely.ContentSeeder.AI" Version="$(ContentSeederPackageVersion)" />
+    <PackageReference Include="TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12" Version="$(ContentSeederPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ServiceDefaults\TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ServiceDefaults.csproj" />
+    <!-- Vendor SDKs the demo can plug into the AI provider (see Startup). OpenAI comes with the AI package. Versions match the central file, which this project does not use. -->
+    <PackageReference Include="OllamaSharp" Version="5.5.0" />
+    <PackageReference Include="Anthropic" Version="12.58.0" />
+    <PackageReference Include="Anthropic.Bedrock" Version="0.14.0" />
+    <PackageReference Include="EPiServer.CMS" Version="12.24.0" />
+    <PackageReference Include="EPiServer.Cms.UI.AspNetIdentity" Version="12.24.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\" />
+  </ItemGroup>
+
+  <!-- Import plugin targets so the module zip and UI assets are copied on build.
+       NuGet does this automatically; project references require an explicit import. -->
+  <Import Project="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.targets" Condition="'$(ContentSeederUseLocalPackages)' != 'true'" />
+  <Import Project="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12\TechnicalDogsbody.Optimizely.ContentSeeder.targets" Condition="'$(ContentSeederUseLocalPackages)' != 'true'" />
+
+</Project>

@@ -1,0 +1,48 @@
+@model CampaignPageExperience
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<header class="page-intro">
+    <div class="container">
+        <span class="eyebrow">Campaign</span>
+        <h1>@(string.IsNullOrWhiteSpace(Model.CampaignName) ? Model.Name : Model.CampaignName)</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Tagline))
+        {
+            <p class="lead">@Model.Tagline</p>
+        }
+        @if (Model.StartDate.HasValue || Model.EndDate.HasValue)
+        {
+            <p class="meta">
+                @if (Model.StartDate.HasValue)
+                {
+                    <span>Runs from @Model.StartDate.Value.ToString("d MMM yyyy")</span>
+                }
+                @if (Model.EndDate.HasValue)
+                {
+                    <span> until @Model.EndDate.Value.ToString("d MMM yyyy")</span>
+                }
+            </p>
+        }
+        @if (!ContentReference.IsNullOrEmpty(Model.HeroImage))
+        {
+            <img class="feature-image" src="@Url.ContentUrl(Model.HeroImage)" alt="" />
+        }
+    </div>
+</header>
+
+@* A language version with no layout yet (e.g. a page an editor just translated) has nothing to render,
+   and the outline tag helper throws on a null layout. *@
+@if (Model.Layout is not null)
+{
+    <epi-outline class="vb-experience" experience="@Model">
+        <epi-grid class="vb-section">
+            <epi-row class="vb-row">
+                <epi-column class="vb-column">
+                    <epi-component class="vb-component" />
+                </epi-column>
+            </epi-row>
+        </epi-grid>
+        <epi-component class="vb-root-component" />
+    </epi-outline>
+}

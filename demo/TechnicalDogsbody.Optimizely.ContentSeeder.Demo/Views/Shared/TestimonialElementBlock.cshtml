@@ -1,0 +1,29 @@
+@model TestimonialElementBlock
+@{
+    var withPhoto = ViewData.DisplaySetting("layout", "withPhoto") == "withPhoto";
+    var showRating = ViewData.DisplaySettingEnabled("rating");
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Quote))
+{
+    <figure class="testimonial">
+        @if (showRating)
+        {
+            <div class="rating" aria-label="Rated 5 out of 5">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        }
+        <blockquote>&ldquo;@Model.Quote&rdquo;</blockquote>
+        <figcaption>
+            @if (withPhoto && !ContentReference.IsNullOrEmpty(Model.AuthorPhoto))
+            {
+                <img class="avatar" src="@Url.ContentUrl(Model.AuthorPhoto)" alt="" loading="lazy" />
+            }
+            <span class="who">
+                <strong>@Model.AuthorName</strong>
+                @if (!string.IsNullOrWhiteSpace(Model.AuthorTitle))
+                {
+                    <span>@Model.AuthorTitle</span>
+                }
+            </span>
+        </figcaption>
+    </figure>
+}

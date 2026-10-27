@@ -1,0 +1,34 @@
+@model HeroSection
+@{
+    var overlay = ViewData.DisplaySetting("overlay", "dark");
+    var height = ViewData.DisplaySetting("height", "large");
+}
+
+<section class="hero hero-overlay-@overlay hero-height-@height">
+    @if (!ContentReference.IsNullOrEmpty(Model.BackgroundImage))
+    {
+        <img class="hero-bg" src="@Url.ContentUrl(Model.BackgroundImage)" alt="" />
+    }
+    <div class="container">
+        <div class="hero-content">
+            <span class="eyebrow">Featured</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Heading))
+            {
+                <h2>@Model.Heading</h2>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Tagline))
+            {
+                <p class="tagline">@Model.Tagline</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.CtaButtonText))
+            {
+                <a href="@(string.IsNullOrWhiteSpace(Model.CtaButtonUrl) ? "#" : Model.CtaButtonUrl)"
+                   class="btn btn-primary btn-lg"
+                   target="@(Model.CtaOpenInNewTab ? "_blank" : null)"
+                   rel="@(Model.CtaOpenInNewTab ? "noopener noreferrer" : null)">
+                    @Model.CtaButtonText <span aria-hidden="true">&rarr;</span>
+                </a>
+            }
+        </div>
+    </div>
+</section>

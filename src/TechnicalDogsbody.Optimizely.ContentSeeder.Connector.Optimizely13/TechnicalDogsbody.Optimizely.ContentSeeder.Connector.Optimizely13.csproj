@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- The package accepts any CMS 13 release, so it manages its own EPiServer versions (the central file pins the tested one). -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <!-- Building at the 13.0.0 floor restores that release's own transitive packages, which have advisories fixed in later CMS releases. They are not shipped by this package. -->
+    <NoWarn>$(NoWarn);NU1608;NU1902;NU1903</NoWarn>
+    <RootNamespace>TechnicalDogsbody.Optimizely.ContentSeeder</RootNamespace>
+    <AssemblyName>TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13</AssemblyName>
+    <Description>Optimizely CMS 13 connector for TechnicalDogsbody.Optimizely.ContentSeeder: seeds pages, blocks, media and Visual Builder sections into Optimizely CMS 13.</Description>
+    <PackageTags>optimizely;episerver;cms;seeding;visualbuilder</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.csproj" />
+  </ItemGroup>
+
+  <!-- The Optimizely seeding code, shared with the Optimizely 12 connector. -->
+  <Import Project="..\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Shared.projitems" Label="Shared" />
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>TechnicalDogsbody.Optimizely.ContentSeeder.Integration.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <!-- Lets Moq proxy internal seams in unit tests. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPiServer.CMS.Core" Version="[13.0.0,14.0.0)" />
+    <PackageReference Include="EPiServer.CMS.UI.Core" Version="[13.0.0,14.0.0)" />
+    <!-- Transitive version overrides -->
+    <PackageReference Include="Castle.Core" Version="5.2.1" PrivateAssets="all" />
+    <PackageReference Include="MailKit" Version="4.18.1" PrivateAssets="all" />
+    <PackageReference Include="MimeKit" Version="4.18.1" PrivateAssets="all" />
+    <PackageReference Include="MinVer" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!--
+    Module deployment: the targets file and module.config are packed under build/ so consumers pick them up. The shared
+    admin UI is packed by the core package.
+  -->
+  <ItemGroup>
+    <None Include="TechnicalDogsbody.Optimizely.ContentSeeder.targets"
+          Pack="true"
+          PackagePath="build/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.targets" />
+    <None Include="module.config"
+          Pack="true"
+          PackagePath="build/module.config" />
+  </ItemGroup>
+
+</Project>
