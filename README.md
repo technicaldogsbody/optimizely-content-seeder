@@ -167,6 +167,60 @@ new ContentAreaAssignment(nameof(StartPage.PromoArea), ["promo1", "promo2", "pro
 
 The string IDs must match `BlockDefinition.Id` values declared in the same `SeedTree`.
 
+### Sections (CMS 13 only)
+
+Sections are Visual Builder layouts: reusable groups of rows, columns and elements. They exist only in the Optimizely 13 connector. CMS 12 has no sections.
+
+```csharp
+var sections = new List<SectionDefinition>
+{
+    new("hero-section", typeof(BlankSection),
+        rows:
+        [
+            new RowDefinition(columns:
+            [
+                new ColumnDefinition(elements:
+                [
+                    new ElementDefinition(typeof(RichTextElementBlock), name: "Body Text"),
+                    new ElementDefinition(typeof(ButtonElementBlock), name: "CTA Button")
+                ])
+            ])
+        ])
+};
+
+return SeedFactory.Tree(blocks: [heroBlock], nodes: [startPage], sections: sections);
+```
+
+`SectionDefinition` takes the section id, the section's type, and optional `configure`, `imageSizes`, `rows`, `videos` and `instance` arguments. A section's rows hold columns, and each column holds elements. `RowDefinition` and `ColumnDefinition` take optional `name`, `displayTemplateKey` and `displaySettings`. `ElementDefinition` takes the element type, and the same optional arguments as `SectionDefinition`. `name` is the display name shown in the Visual Builder UI. An element type must be a block with the element-enabled composition behaviour, which is the usual setup for Visual Builder elements.
+
+### Repeating rows (CMS 13 only)
+
+A `RepeatingElementDefinition` produces one row for each column count from `minColumns` to `maxColumns`. Use it when a section should show the same element at several widths:
+
+```csharp
+new RepeatingElementDefinition(typeof(RichTextElementBlock), name: "Repeated Text",
+    minColumns: 1, maxColumns: 6, reuseContent: true)
+```
+
+With `reuseContent: true`, the content is generated once and copied into every row, so an AI provider is asked for one element rather than one per row. With `false`, each element gets its own content.
+
+### Experience pages (CMS 13 only)
+
+A page that uses sections is an `Experience`. Create it with `SeedFactory.Experience`, and list the sections it uses as `SectionSlotAssignment`s. Each assignment names a section from the `sections` list and gives it a slot name:
+
+```csharp
+var landingPage = SeedFactory.Experience(
+    type: typeof(LandingPageExperience),
+    count: 2,
+    sections:
+    [
+        new SectionSlotAssignment("hero-section", name: "Hero"),
+        new SectionSlotAssignment("blank-section", name: "Content")
+    ]);
+```
+
+The section id must match a `SectionDefinition` in the `sections` list passed to `SeedFactory.Tree`. The seed fails validation if it doesn't. Each language of an Experience page gets the master's sections, rows, columns and elements. Inline elements are translated, while shared blocks and sections are referenced rather than copied. With an AI provider, the elements of a section are generated in parallel, controlled by `MaxParallelGeneration` (see the options reference).
+
 ### Image sizes
 
 The `imageSizes` dictionary on `BlockDefinition` and `SeedNode` controls which `ContentReference` properties receive a generated image asset, and at what dimensions. Properties not listed are left `null`.
