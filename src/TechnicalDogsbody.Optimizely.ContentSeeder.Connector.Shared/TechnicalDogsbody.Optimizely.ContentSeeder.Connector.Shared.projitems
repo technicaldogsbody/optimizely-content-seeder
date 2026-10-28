@@ -13,6 +13,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Infrastructure\ContentSeederHostedService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\BlockSeeder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentDeleter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\EditorContentGuard.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentProperties.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ContentRepositoryMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\Cultures.cs" />

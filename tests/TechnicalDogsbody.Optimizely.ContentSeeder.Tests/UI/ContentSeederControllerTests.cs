@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.DataAccess;
 using Moq;
 using TechnicalDogsbody.MicroMediator;
 using TechnicalDogsbody.MicroMediator.Abstractions;
@@ -71,6 +74,7 @@ public class ContentSeederControllerTests
 
         _orchestratorMock.SetupGet(o => o.DefinitionIds).Returns(["demo-seed-v1"]);
         _trackerMock.Setup(t => t.GetDefinitionStatusesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _trackerMock.Setup(t => t.GetByDefinitionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var controller = new ContentSeederController(
             _trackerMock.Object,
             root.GetRequiredService<IMediator>(),
@@ -78,6 +82,7 @@ public class ContentSeederControllerTests
             imageFactory ?? _imageFactoryMock.Object,
             _scopeFactoryMock.Object,
             _monitor,
+            new EditorContentGuard(new Mock<IContentRepository>().Object, _trackerMock.Object, []),
             NullLogger<ContentSeederController>.Instance);
 
         controller.ControllerContext = new ControllerContext
@@ -219,7 +224,7 @@ public class ContentSeederControllerTests
     {
         var controller = CreateController();
 
-        var result = await controller.Reseed(null, CancellationToken.None);
+        var result = await controller.Reseed(null, null, null, CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(result);
         await WaitForOperationToFinishAsync();
@@ -232,7 +237,7 @@ public class ContentSeederControllerTests
     {
         var controller = CreateController();
 
-        var result = controller.Delete(null);
+        var result = await controller.Delete(null, null, null, CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(result);
         await WaitForOperationToFinishAsync();
@@ -271,7 +276,7 @@ public class ContentSeederControllerTests
         var first = await controller.Seed(null, CancellationToken.None);
         Assert.IsType<AcceptedResult>(first);
 
-        var second = controller.Delete(null);
+        var second = await controller.Delete(null, null, null, CancellationToken.None);
         Assert.IsType<ConflictObjectResult>(second);
 
         tcs.SetResult(true);
@@ -307,13 +312,13 @@ public class ContentSeederControllerTests
     }
 
     [Fact]
-    public void Delete_WithAnUnknownDefinition_StillRuns()
+    public async Task Delete_WithAnUnknownDefinition_StillRuns()
     {
         // Content from a removed definition must remain deletable.
         var controller = CreateController();
         _orchestratorMock.Setup(o => o.DeleteAllAsync("removed-long-ago", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var result = controller.Delete("removed-long-ago");
+        var result = await controller.Delete("removed-long-ago", null, null, CancellationToken.None);
 
         Assert.IsType<AcceptedResult>(result);
     }

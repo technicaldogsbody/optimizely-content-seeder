@@ -1,5 +1,6 @@
 using EPiServer.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ public sealed class ContentSeederController(
     IImageContentFactory imageFactory,
     IServiceScopeFactory serviceScopeFactory,
     SeedOperationMonitor operationMonitor,
+    EditorContentGuard editorContentGuard,
     ILogger<ContentSeederController> logger) : ControllerBase
 {
     // ── GET /api/contentseeder/status ────────────────────────────────────────
@@ -90,12 +92,23 @@ public sealed class ContentSeederController(
 
     // ── POST /api/contentseeder/reseed ───────────────────────────────────────
 
-    /// <summary>POST api/contentseeder/reseed: deletes the seeded content for all definitions or one, then seeds it again, in the background.</summary>
+    /// <summary>
+    /// POST api/contentseeder/reseed: deletes the seeded content for all definitions or one, then seeds it again, in the
+    /// background. If editor pages sit under seeded pages, the request must say what to do with them: see
+    /// <see cref="ChooseEditorContentAsync"/>.
+    /// </summary>
     [HttpPost("reseed")]
-    public async Task<IActionResult> Reseed([FromQuery] string? definitionId, CancellationToken ct)
+    public async Task<IActionResult> Reseed(
+        [FromQuery] string? definitionId,
+        [FromQuery] string? editorContent,
+        [FromQuery] int? moveTargetId,
+        CancellationToken ct)
     {
         if (await UnknownDefinitionAsync(definitionId, ct) is { } error)
             return error;
+
+        if (await ChooseEditorContentAsync(definitionId, editorContent, moveTargetId, ct) is { } blocked)
+            return blocked;
 
         return LaunchBackgroundOperation(Name("Reseed", definitionId),
             scope => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new ReseedCommand(definitionId)).AsTask());
@@ -105,12 +118,75 @@ public sealed class ContentSeederController(
 
     /// <summary>
     /// POST api/contentseeder/delete: deletes the content of all definitions or one, in the background. An unknown id is
-    /// allowed, so content left behind by a definition that has been removed from the code can still be deleted.
+    /// allowed, so content left behind by a definition that has been removed from the code can still be deleted. If
+    /// editor pages sit under seeded pages, the request must say what to do with them: see
+    /// <see cref="ChooseEditorContentAsync"/>.
     /// </summary>
     [HttpPost("delete")]
-    public IActionResult Delete([FromQuery] string? definitionId)
-        => LaunchBackgroundOperation(Name("Delete", definitionId),
+    public async Task<IActionResult> Delete(
+        [FromQuery] string? definitionId,
+        [FromQuery] string? editorContent,
+        [FromQuery] int? moveTargetId,
+        CancellationToken ct)
+    {
+        if (await ChooseEditorContentAsync(definitionId, editorContent, moveTargetId, ct) is { } blocked)
+            return blocked;
+
+        return LaunchBackgroundOperation(Name("Delete", definitionId),
             scope => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new DeleteAllCommand(definitionId)).AsTask());
+    }
+
+    // ── GET /api/contentseeder/editor-content ────────────────────────────────
+
+    /// <summary>
+    /// GET api/contentseeder/editor-content: the editor pages under seeded pages that a delete or reseed would remove, and
+    /// the pages they could be moved under. No <c>pages</c> means the delete is safe.
+    /// </summary>
+    [HttpGet("editor-content")]
+    public async Task<IActionResult> EditorContent([FromQuery] string? definitionId, CancellationToken ct)
+        => Ok(await editorContentGuard.ReportAsync(definitionId, ct).ConfigureAwait(false));
+
+    /// <summary>
+    /// Stops a reseed or delete that would remove editor pages, unless the caller has said what to do with them:
+    /// <c>anyway</c> deletes them, and <c>move</c> moves them under <paramref name="moveTargetId"/> first. The target must
+    /// be one of the offered targets. Returns the response to send when the request must stop, or null to carry on.
+    /// Without a choice it returns 422 with the report, so the warning can't be skipped by calling the API directly.
+    /// </summary>
+    private async Task<IActionResult?> ChooseEditorContentAsync(
+        string? definitionId, string? choice, int? moveTargetId, CancellationToken ct)
+    {
+        var report = await editorContentGuard.ReportAsync(definitionId, ct).ConfigureAwait(false);
+        if (report.Pages.Count == 0)
+            return null;
+
+        switch (choice)
+        {
+            case "anyway":
+                logger.LogWarning("Deleting {Count} editor page(s) under seeded content, as the caller asked.", report.Pages.Count);
+                return null;
+
+            case "move":
+                if (moveTargetId is not { } target || report.Targets.All(t => t.ContentId != target))
+                    return BadRequest("Choose a page from the list to move the editor content under.");
+
+                try
+                {
+                    editorContentGuard.Move(report.Pages.Select(p => p.ContentId), target);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Could not move editor content under page {TargetId}. Nothing was deleted.", target);
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        "Could not move the editor content, so nothing was deleted. Check the log for details.");
+                }
+
+                logger.LogInformation("Moved {Count} editor page(s) under page {TargetId} before deleting seeded content.", report.Pages.Count, target);
+                return null;
+
+            default:
+                return StatusCode(StatusCodes.Status422UnprocessableEntity, report);
+        }
+    }
 
     // ── private ──────────────────────────────────────────────────────────────
 

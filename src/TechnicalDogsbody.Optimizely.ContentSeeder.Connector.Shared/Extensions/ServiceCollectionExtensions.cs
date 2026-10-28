@@ -84,6 +84,7 @@ public static partial class ServiceCollectionExtensions
         // The connector registers its capabilities in AddSectionSeeder; a connector without sections gets none, so this is the default.
         services.TryAddSingleton<IContentCapabilities>(new ContentCapabilities(false));
         services.TryAddScoped<ISeedTracker, ContentSeederRepository>();
+        services.TryAddScoped<EditorContentGuard>();
         services.TryAddScoped<ContentSeederMigration>();
         // Emails the user who started a run when it completes. Sends nothing unless Smtp:Host is set.
         services.AddScoped<ISeedCompletedHandler, SeedCompletionEmail>();

@@ -70,6 +70,28 @@ export interface DryRunResult {
   definitions: DryRunDefinitionResult[]
 }
 
+/** A page the seeder did not create, sitting under a seeded page. Deleting the seeded page deletes it too. */
+export interface EditorPage {
+  contentId: number
+  name: string
+  seededParentId: number
+}
+
+/** A page that editor pages can be moved under. */
+export interface MoveTarget {
+  contentId: number
+  name: string
+}
+
+/** The editor pages a delete or reseed would remove, and where they could be moved. No pages means it is safe. */
+export interface EditorContentReport {
+  pages: EditorPage[]
+  targets: MoveTarget[]
+}
+
+/** What to do with editor pages before a delete or reseed. */
+export type EditorChoice = { kind: 'anyway' } | { kind: 'move'; targetId: number }
+
 const BASE = '/api/contentseeder'
 
 // All requests must include credentials so the ASP.NET auth cookie is sent.
@@ -101,9 +123,31 @@ const operationPaths: Record<OperationName, string> = {
   Delete: 'delete',
 }
 
-export async function startOperation(name: OperationName, definitionId: string | null): Promise<void> {
-  const res = await fetch(operationUrl(operationPaths[name], definitionId), { ...defaults, method: 'POST' })
+/** The editor pages a delete or reseed would remove for one definition, or every definition when null. */
+export async function getEditorContent(definitionId: string | null): Promise<EditorContentReport> {
+  const res = await fetch(operationUrl('editor-content', definitionId), { ...defaults, cache: 'no-store' })
+  if (!res.ok) throw new Error(`Checking for editor pages failed (${res.status})`)
+  return res.json()
+}
+
+// Adds what to do with editor pages to the operation's URL. Reseed and Delete need it when editor pages exist.
+function withEditorChoice(url: string, choice: EditorChoice | undefined): string {
+  if (!choice) return url
+  const params = new URLSearchParams(choice.kind === 'anyway'
+    ? { editorContent: 'anyway' }
+    : { editorContent: 'move', moveTargetId: String(choice.targetId) })
+  return `${url}${url.includes('?') ? '&' : '?'}${params}`
+}
+
+export async function startOperation(
+  name: OperationName,
+  definitionId: string | null,
+  choice?: EditorChoice,
+): Promise<void> {
+  const url = withEditorChoice(operationUrl(operationPaths[name], definitionId), choice)
+  const res = await fetch(url, { ...defaults, method: 'POST' })
   if (res.status === 409) throw new Error('Another operation is already in progress.')
   if (res.status === 400) throw new Error('That seed definition no longer exists. Refresh the page.')
+  if (res.status === 422) throw new Error('The pages under seeded content have changed. Check again before continuing.')
   if (!res.ok) throw new Error(`${name} failed to start (${res.status})`)
 }

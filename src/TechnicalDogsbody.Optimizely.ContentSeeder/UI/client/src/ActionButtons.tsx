@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
-import { OperationName, SeedDefinitionStatus } from './api'
+import { EditorChoice, EditorContentReport, OperationName, SeedDefinitionStatus, getEditorContent } from './api'
 
 interface Props {
   running: boolean
@@ -10,10 +10,13 @@ interface Props {
   scope: string | null
   onScopeChange: (definitionId: string | null) => void
   error: string | null
-  onRun: (name: OperationName) => Promise<void>
+  onRun: (name: OperationName, choice?: EditorChoice) => Promise<void>
 }
 
 type Confirmable = 'Reseed' | 'Delete'
+
+// How many editor pages the warning lists by name before it summarises the rest.
+const MAX_LISTED_PAGES = 10
 
 const confirmCopy: Record<Confirmable, { title: string; body: string; action: string }> = {
   Reseed: {
@@ -23,7 +26,7 @@ const confirmCopy: Record<Confirmable, { title: string; body: string; action: st
   },
   Delete: {
     title: 'Delete seeded content?',
-    body: 'The pages, blocks, sections and images the seeder created will be deleted. Content created by editors isn’t touched.',
+    body: 'The pages, blocks, sections and images the seeder created will be deleted. Pages the seeder didn’t create, but which sit under seeded pages, are checked first so you can keep them.',
     action: 'Delete',
   },
 }
@@ -49,6 +52,10 @@ export function ActionButtons({
 }: Props) {
   const [starting, setStarting] = useState<OperationName | null>(null)
   const [confirm, setConfirm] = useState<Confirmable | null>(null)
+  const [report, setReport] = useState<EditorContentReport | null>(null)
+  const [reportError, setReportError] = useState<string | null>(null)
+  const [option, setOption] = useState<'anyway' | 'move'>('move')
+  const [moveTargetId, setMoveTargetId] = useState<number | null>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -58,14 +65,35 @@ export function ActionButtons({
     if (!confirm && dialog.open) dialog.close()
   }, [confirm])
 
-  const start = async (name: OperationName) => {
+  // Opens the confirmation and checks for editor pages first, so the warning is shown before anything is deleted.
+  const openConfirm = (name: Confirmable) => {
+    setConfirm(name)
+    setReport(null)
+    setReportError(null)
+    getEditorContent(scope)
+      .then(found => {
+        setReport(found)
+        setOption(found.targets.length > 0 ? 'move' : 'anyway')
+        setMoveTargetId(found.targets[0]?.contentId ?? null)
+      })
+      .catch(e => setReportError(e instanceof Error ? e.message : 'Unknown error'))
+  }
+
+  const start = async (name: OperationName, choice?: EditorChoice) => {
     setConfirm(null)
     setStarting(name)
     try {
-      await onRun(name)
+      await onRun(name, choice)
     } finally {
       setStarting(null)
     }
+  }
+
+  // With editor pages found, the choice made in the warning goes with the request. Without any, the request is plain.
+  const confirmAction = (name: Confirmable) => {
+    if (!report || report.pages.length === 0) return start(name)
+    if (option === 'anyway') return start(name, { kind: 'anyway' })
+    if (moveTargetId !== null) return start(name, { kind: 'move', targetId: moveTargetId })
   }
 
   const disabled = running || starting !== null
@@ -76,6 +104,70 @@ export function ActionButtons({
   const scopeNote = scope === null
     ? 'Every seed definition is affected.'
     : `Only ${scope} is affected. Other seed definitions are left alone.`
+
+  // The editor-page part of the confirmation: a check in progress, a failed check, or the warning with its two choices.
+  const editorWarning = (name: Confirmable) => {
+    if (reportError) {
+      return (
+        <div className="cs-callout cs-callout--danger" role="alert">
+          Couldn’t check for pages under seeded content: {reportError}. Cancel and try again.
+        </div>
+      )
+    }
+    if (!report) return <p className="cs-small cs-muted">Checking for pages under seeded content…</p>
+    if (report.pages.length === 0) return null
+
+    const count = report.pages.length
+    const listed = report.pages.slice(0, MAX_LISTED_PAGES)
+    const hidden = count - listed.length
+    const canMove = report.targets.length > 0
+    return (
+      <div className="cs-callout cs-callout--danger">
+        <strong>
+          {count === 1
+            ? '1 page not created by the seeder sits under seeded content'
+            : `${count} pages not created by the seeder sit under seeded content`}
+        </strong>
+        <span className="cs-small">
+          {name === 'Reseed' ? 'Reseeding' : 'Deleting the seeded content'} also deletes these pages and everything under them.
+        </span>
+        <ul className="cs-small" style={{ listStyle: 'disc', margin: '4px 0 8px 20px', padding: 0 }}>
+          {listed.map(p => <li key={p.contentId} style={{ display: 'list-item', listStyleType: 'disc', listStylePosition: 'outside' }}>{p.name}</li>)}
+          {hidden > 0 && <li style={{ display: 'list-item', listStyleType: 'disc', listStylePosition: 'outside' }}>and {hidden} more</li>}
+        </ul>
+        <fieldset className="cs-choice">
+          <legend className="cs-small">What should happen to them?</legend>
+          <label className="cs-small">
+            <input type="radio" name="cs-editor-option" style={{ margin: '0 12px 0 0' }} checked={option === 'move'} disabled={!canMove}
+              onChange={() => setOption('move')} />
+            Move to{' '}
+            <select className="cs-select" aria-label="Move editor pages to" value={moveTargetId ?? ''}
+              disabled={!canMove || option !== 'move'}
+              onChange={e => setMoveTargetId(Number(e.target.value))}>
+              {report.targets.map(t => <option key={t.contentId} value={t.contentId}>{t.name}</option>)}
+            </select>{' '}
+            and delete
+          </label>
+          <label className="cs-small">
+            <input type="radio" name="cs-editor-option" style={{ margin: '0 12px 0 0' }} checked={option === 'anyway'}
+              onChange={() => setOption('anyway')} />
+            Delete anyway
+          </label>
+          {!canMove && <span className="cs-small cs-muted">There’s no page to move them to, so they can only be deleted.</span>}
+        </fieldset>
+      </div>
+    )
+  }
+
+  const actionLabel = (name: Confirmable) => {
+    if (!report || report.pages.length === 0) return confirmCopy[name].action
+    return option === 'anyway' ? 'Delete anyway' : 'Move and delete'
+  }
+
+  const actionDisabled = (): boolean => {
+    if (reportError || !report) return true
+    return report.pages.length > 0 && option === 'move' && moveTargetId === null
+  }
 
   return (
     <section className="cs-card" aria-labelledby="cs-actions-heading">
@@ -116,7 +208,7 @@ export function ActionButtons({
             <span className="cs-chips">
               {changedInScope.map(id => <span key={id} className="cs-badge cs-mono">{id}</span>)}
             </span>
-            <button className="cs-button cs-button--primary" onClick={() => setConfirm('Reseed')} disabled={disabled}>
+            <button className="cs-button cs-button--primary" onClick={() => openConfirm('Reseed')} disabled={disabled}>
               Reseed now
             </button>
           </div>
@@ -136,15 +228,15 @@ export function ActionButtons({
           title="Reseed"
           description={`Delete the seeded content for ${scopeName} and build it again from the current seed definition. Use this after changing a definition.`}
         >
-          <button className={`cs-button ${drift ? 'cs-button--primary' : 'cs-button--secondary'}`} onClick={() => setConfirm('Reseed')} disabled={disabled || !hasContent}>
+          <button className={`cs-button ${drift ? 'cs-button--primary' : 'cs-button--secondary'}`} onClick={() => openConfirm('Reseed')} disabled={disabled || !hasContent}>
             {starting === 'Reseed' ? 'Starting…' : 'Reseed'}
           </button>
         </ActionRow>
         <ActionRow
           title="Delete"
-          description={`Remove the content the seeder created for ${scopeName}, including its images. Content created by editors isn’t touched.`}
+          description={`Remove the content the seeder created for ${scopeName}, including its images. Pages the seeder didn’t create that sit under seeded pages are listed first, so you can move or delete them.`}
         >
-          <button className="cs-button cs-button--danger" onClick={() => setConfirm('Delete')} disabled={disabled || !hasContent}>
+          <button className="cs-button cs-button--danger" onClick={() => openConfirm('Delete')} disabled={disabled || !hasContent}>
             {starting === 'Delete' ? 'Starting…' : 'Delete'}
           </button>
         </ActionRow>
@@ -158,13 +250,15 @@ export function ActionButtons({
             <h2 id="cs-dialog-title">{confirmCopy[confirm].title}</h2>
             <p>{confirmCopy[confirm].body}</p>
             <p className="cs-small">{scopeNote}</p>
-            <p className="cs-small cs-muted">This can’t be undone.</p>
+            {editorWarning(confirm)}
+            <p className="cs-irreversible">This can’t be undone.</p>
             <div className="cs-dialog__actions">
               <button type="button" className="cs-button cs-button--ghost" onClick={() => setConfirm(null)} autoFocus>
                 Cancel
               </button>
-              <button type="button" className="cs-button cs-button--danger-solid" onClick={() => start(confirm)}>
-                {confirmCopy[confirm].action}
+              <button type="button" className="cs-button cs-button--danger-solid" disabled={actionDisabled()}
+                onClick={() => confirmAction(confirm)}>
+                {actionLabel(confirm)}
               </button>
             </div>
           </form>

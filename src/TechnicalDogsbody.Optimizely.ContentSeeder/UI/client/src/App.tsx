@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ContentSeederStatus, OperationName, getStatus, startOperation } from './api'
+import { ContentSeederStatus, EditorChoice, OperationName, getStatus, startOperation } from './api'
 import { StatusPanel } from './StatusPanel'
 import { OperationBanner } from './OperationBanner'
 import { DryRunPanel } from './DryRunPanel'
@@ -70,11 +70,11 @@ export default function App() {
   const scope: string | null =
     status && selectedId !== null && status.definitions.some(d => d.seedDefinitionId === selectedId) ? selectedId : null
 
-  const run = async (name: OperationName) => {
+  const run = async (name: OperationName, choice?: EditorChoice) => {
     setActionError(null)
     if (status) pendingBaseline.current = countsOf(status)
     try {
-      await startOperation(name, scope)
+      await startOperation(name, scope, choice)
     } catch (e) {
       pendingBaseline.current = null
       setActionError(e instanceof Error ? e.message : 'Unknown error')

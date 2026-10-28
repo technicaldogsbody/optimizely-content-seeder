@@ -337,6 +337,25 @@
 }
 .cs-footer a { color: var(--cs-text); font-weight: 500; text-decoration-color: var(--cs-tdb-orange); text-underline-offset: 3px; }
 .cs-footer a:hover { color: var(--cs-tdb-orange); }
+
+/* ── Editor pages in the delete warning ──────────────────────────────────── */
+
+.cs-callout--danger .cs-small { display: block; margin: 4px 0; }
+.cs-callout ul { margin: 4px 0 8px 20px; padding: 0; }
+.cs-choice { border: 0; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.cs-choice legend { padding: 0; margin-bottom: 4px; font-weight: 600; }
+.cs-choice label { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 2px 0; }
+.cs-choice input[type="radio"] { margin: 0; flex: none; }
+.cs-choice .cs-select { width: auto; min-width: 12rem; max-width: 100%; }
+.cs-choice .cs-muted { display: block; }
+.cs-irreversible {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #f9c4c4;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cs-danger);
+}
 .cs-ready { font-family: var(--cs-mono); color: var(--cs-navy); letter-spacing: .05em; }
 .cs-cursor {
     display: inline-block;
