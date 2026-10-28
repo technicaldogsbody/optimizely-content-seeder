@@ -138,6 +138,10 @@ export default function App() {
             <a href="https://www.technicaldogsbody.com" target="_blank" rel="noopener noreferrer">
               TechnicalDogsbody
             </a>
+            {' · '}
+            <a href="https://github.com/technicaldogsbody/optimizely-content-seeder" target="_blank" rel="noopener noreferrer">
+              Documentation
+            </a>
           </span>
         </footer>
       </div>
