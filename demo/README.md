@@ -82,7 +82,7 @@ The SQL data lives in a Docker volume (`contentseeder-demo-sqldata`), so later r
 dotnet run --project demo/TechnicalDogsbody.Optimizely.ContentSeeder.Demo.AppHost
 ```
 
-Aspire starts a SQL Server 2022 container, waits for it to be healthy, then launches both demo web apps. The Aspire dashboard URL is printed to the console (typically `http://localhost:15888`). Use the endpoint URLs shown in the dashboard for the demo apps.
+Aspire starts a SQL Server 2022 container, waits for it to be healthy, then launches both demo web apps. It also starts a [Mailpit](https://mailpit.axllent.org/) container, which catches the completion emails the seeder sends. Open its inbox at `http://localhost:8025`; SMTP is on port `1025`, with no login. The demos get their `ContentSeeder:Smtp` settings from the AppHost, so they don't need SendGrid under Aspire. The Aspire dashboard URL is printed to the console (typically `http://localhost:15888`). Use the endpoint URLs shown in the dashboard for the demo apps.
 
 ### Option B — Docker (macOS / Linux / Windows)
 
