@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using TechnicalDogsbody.MicroMediator;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Application;
@@ -51,7 +52,20 @@ public static partial class ServiceCollectionExtensions
         services.TryAddScoped<IContentGenerationProvider>(sp => sp.GetRequiredService<BogusContentGenerationProvider>());
 
         // Image asset factory — scoped, caches ContentReferences within a single seed operation.
-        services.TryAddScoped<IImageSource, PicsumImageSource>();
+        services.TryAddScoped<PicsumImageSource>();
+        services.TryAddScoped<DoodleIpsumImageSource>();
+        services.TryAddScoped<GeneratedImageSource>();
+        services.TryAddScoped<IImageSource>(sp =>
+        {
+            var generated = sp.GetRequiredService<GeneratedImageSource>();
+            IImageSource Resolve(ImageProvider provider) => provider switch
+            {
+                ImageProvider.DoodleIpsum => sp.GetRequiredService<DoodleIpsumImageSource>(),
+                ImageProvider.Generated => generated,
+                _ => sp.GetRequiredService<PicsumImageSource>()
+            };
+            return new FallbackImageSource(Resolve, sp.GetRequiredService<IOptions<ContentSeederOptions>>().Value.ImageProvider, generated);
+        });
         services.TryAddScoped<SeededMediaWriter>();
         services.TryAddScoped<IVideoProvider, VideoProvider>();
         services.TryAddScoped<IImageContentFactory, OptimizelyImageContentFactory>();
@@ -202,6 +216,16 @@ public sealed class ContentSeederBuilder(IServiceCollection services)
         where TFactory : class, IImageContentFactory
     {
         return Replace<IImageContentFactory, TFactory>(ServiceLifetime.Scoped);
+    }
+
+    /// <summary>
+    /// Replaces the default image source (the <see cref="ContentSeederOptions.ImageProvider"/> choice, falling back
+    /// to images drawn in code) with a custom <see cref="IImageSource"/>.
+    /// </summary>
+    public ContentSeederBuilder UseImageSource<TSource>()
+        where TSource : class, IImageSource
+    {
+        return Replace<IImageSource, TSource>(ServiceLifetime.Scoped);
     }
 
     /// <summary>

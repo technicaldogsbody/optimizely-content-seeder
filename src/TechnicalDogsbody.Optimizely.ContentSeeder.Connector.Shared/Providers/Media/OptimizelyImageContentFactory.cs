@@ -1,12 +1,13 @@
 using EPiServer.Core;
 using Microsoft.Extensions.Logging;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
 
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Providers.Media;
 
 /// <summary>
 /// Default <see cref="IImageContentFactory"/> that gets the image from the registered <see cref="IImageSource"/>
-/// (Picsum placeholder photos by default), and saves it as a media asset in the Optimizely content tree
+/// (Picsum placeholder photos by default, drawn in code if the source is unreachable), and saves it as a media asset in the Optimizely content tree
 /// under the seeded media folder (<see cref="Options.ContentSeederOptions.SeededImagesFolder"/>).
 /// </summary>
 public sealed class OptimizelyImageContentFactory(
@@ -19,7 +20,11 @@ public sealed class OptimizelyImageContentFactory(
         => (imageSource as IDescribesProvider)?.Describe() ?? new ProviderInfo(imageSource.GetType().Name);
 
     /// <inheritdoc/>
-    public async Task<ContentHandle> CreateImageAsync(int width, int height, CancellationToken ct = default)
+    public Task<ContentHandle> CreateImageAsync(int width, int height, CancellationToken ct = default)
+        => CreateImageAsync(width, height, provider: null, ct);
+
+    /// <inheritdoc/>
+    public async Task<ContentHandle> CreateImageAsync(int width, int height, ImageProvider? provider, CancellationToken ct = default)
     {
         var imageType = mediaWriter.FindMediaType(typeof(ImageData));
         if (imageType is null)
@@ -31,7 +36,7 @@ public sealed class OptimizelyImageContentFactory(
             return ContentHandle.Empty;
         }
 
-        var source = await imageSource.GetImageAsync(new ImageRequest(width, height), ct).ConfigureAwait(false);
+        var source = await imageSource.GetImageAsync(new ImageRequest(width, height, provider), ct).ConfigureAwait(false);
         if (source is null || source.Bytes.Length == 0)
             return ContentHandle.Empty;
 

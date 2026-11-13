@@ -1,3 +1,4 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
 using System.Globalization;
 using System.Text;
 
@@ -10,7 +11,7 @@ public static partial class SeedTreeFingerprint
     {
         foreach (var section in tree.SectionsOf())
         {
-            sb.Append("S|").Append(section.Id).Append('|').Append(TypeName(section.Type)).Append('|').Append(Images(section.ImageSizes)).Append(Videos(section.Videos)).Append(Instance(section.Instance)).Append('\n');
+            sb.Append("S|").Append(section.Id).Append('|').Append(TypeName(section.Type)).Append('|').Append(Images(section.ImageSizes, section.ImageProviders)).Append(Videos(section.Videos)).Append(Instance(section.Instance)).Append('\n');
             foreach (var source in section.Rows)
                 AppendRowSource(sb, source);
         }
@@ -40,7 +41,7 @@ public static partial class SeedTreeFingerprint
                 foreach (var element in column.Elements)
                 {
                     sb.Append("   E|").Append(TypeName(element.Type)).Append('|').Append(element.Name).Append('|')
-                      .Append(Images(element.ImageSizes)).Append('|').Append(Styles(element.DisplayTemplateKey, element.DisplaySettings)).Append(Videos(element.Videos)).Append(Instance(element.Instance)).Append('\n');
+                      .Append(Images(element.ImageSizes, element.ImageProviders)).Append('|').Append(Styles(element.DisplayTemplateKey, element.DisplaySettings)).Append(Videos(element.Videos)).Append(Instance(element.Instance)).Append('\n');
                 }
             }
         }
@@ -51,7 +52,7 @@ public static partial class SeedTreeFingerprint
             sb.Append(" X|").Append(TypeName(repeating.Type)).Append('|').Append(repeating.Name).Append('|')
               .Append(repeating.MinColumns.ToString(CultureInfo.InvariantCulture)).Append('-')
               .Append(repeating.MaxColumns.ToString(CultureInfo.InvariantCulture)).Append('|')
-              .Append(Images(repeating.ImageSizes)).Append('|').Append(Styles(repeating.DisplayTemplateKey, repeating.DisplaySettings))
+              .Append(Images(repeating.ImageSizes, repeating.ImageProviders)).Append('|').Append(Styles(repeating.DisplayTemplateKey, repeating.DisplaySettings))
               .Append(repeating.ReuseContent ? "|reuse" : string.Empty).Append(Videos(repeating.Videos)).Append(Instance(repeating.Instance)).Append('\n');
         }
     }

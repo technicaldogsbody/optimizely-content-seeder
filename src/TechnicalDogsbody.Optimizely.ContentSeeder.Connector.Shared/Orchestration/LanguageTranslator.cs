@@ -43,7 +43,8 @@ internal sealed class LanguageTranslator(
         Type contentType,
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes,
         IReadOnlyDictionary<string, VideoSource> videos,
-        CancellationToken ct)
+        CancellationToken ct,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
     {
         if (contentGenerationProvider is IContentTranslationProvider translator
             && contentLoader.TryGet<IContentData>(
@@ -54,7 +55,7 @@ internal sealed class LanguageTranslator(
             return;
         }
 
-        await contentGenerationProvider.PopulateAsync(branch, props, language, contentType, imageSizes, ct).ConfigureAwait(false);
+        await contentGenerationProvider.PopulateWithImageProvidersAsync(branch, props, language, contentType, imageSizes, imageProviders, ct).ConfigureAwait(false);
 
         if (videos.Count > 0
             && contentLoader.TryGet<IContentData>(masterRef.ToReferenceWithoutVersion(), Cultures.Resolve(masterLanguage, logger), out var master2))

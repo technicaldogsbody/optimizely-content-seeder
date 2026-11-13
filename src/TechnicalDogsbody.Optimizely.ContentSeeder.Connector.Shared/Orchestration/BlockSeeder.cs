@@ -71,7 +71,7 @@ internal sealed class BlockSeeder(
         var props = GetContentProperties(blockDef.Type)
             .Where(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null)
             .ToList();
-        await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, blockDef.Type, blockDef.ImageSizes, blockDef.Videos, ct).ConfigureAwait(false);
+        await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, blockDef.Type, blockDef.ImageSizes, blockDef.Videos, ct, blockDef.ImageProviders).ConfigureAwait(false);
         LanguageTranslator.ConfigureLanguageVersion(branch, blockDef.Configure, 0, blockDef.Type);
 
         // EPiServer validates that Name is non-empty before saving; CreateLanguageBranch does
@@ -142,7 +142,7 @@ internal sealed class BlockSeeder(
         var props = GetContentProperties(blockDef.Type).ToList();
         logger.LogDebug("Block {BlockId} GetType={BlockType}, props to populate: [{Props}].",
             blockDef.Id, block.GetType().FullName, string.Join(", ", props.Select(p => p.Name)));
-        await contentGenerationProvider.PopulateAsync(block, props, language, blockDef.Type, blockDef.ImageSizes, ct).ConfigureAwait(false);
+        await contentGenerationProvider.PopulateWithImageProvidersAsync(block, props, language, blockDef.Type, blockDef.ImageSizes, blockDef.ImageProviders, ct).ConfigureAwait(false);
         await videos.ApplyVideosAsync(block, blockDef.Videos, ct).ConfigureAwait(false);
         blockDef.Configure?.Invoke(block, 0);
 

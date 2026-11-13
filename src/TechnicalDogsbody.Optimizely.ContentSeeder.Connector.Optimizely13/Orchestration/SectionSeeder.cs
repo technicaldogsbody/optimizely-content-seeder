@@ -67,7 +67,7 @@ internal sealed class SectionSeeder(
     public IReadOnlyList<BlockDefinition> SharedSectionBlocks(SeedTree tree)
         => tree.SectionsOf()
             .Where(section => !typeof(SectionData).IsAssignableFrom(section.Type))
-            .Select(section => new BlockDefinition(section.Id, section.Type, section.Configure, section.ImageSizes, section.Videos, section.Instance))
+            .Select(section => new BlockDefinition(section.Id, section.Type, section.Configure, section.ImageSizes, section.Videos, section.Instance, section.ImageProviders))
             .ToList();
 
     /// <inheritdoc/>
@@ -253,7 +253,7 @@ internal sealed class SectionSeeder(
             .Invoke(contentRepository, [ContentReference.GlobalBlockFolder])!;
 
         var props = GetContentProperties(sectionDef.Type).ToList();
-        await contentGenerationProvider.PopulateAsync(section, props, language, sectionDef.Type, sectionDef.ImageSizes, ct).ConfigureAwait(false);
+        await contentGenerationProvider.PopulateWithImageProvidersAsync(section, props, language, sectionDef.Type, sectionDef.ImageSizes, sectionDef.ImageProviders, ct).ConfigureAwait(false);
         await videos.ApplyVideosAsync(section, sectionDef.Videos, ct).ConfigureAwait(false);
         sectionDef.Configure?.Invoke(section, 0);
 
@@ -358,7 +358,8 @@ internal sealed class SectionSeeder(
         IReadOnlyDictionary<string, string>? DisplaySettings,
         IReadOnlyDictionary<string, VideoSource> Videos,
         ElementJob? CloneOf = null,
-        string? Instance = null)
+        string? Instance = null,
+        IReadOnlyDictionary<string, ImageProvider>? ImageProviders = null)
     {
         // The finished inline element; set once it has been materialized, so later copies can be made from it.
         /// <summary>
@@ -378,11 +379,12 @@ internal sealed class SectionSeeder(
         IReadOnlyDictionary<string, string>? displaySettings,
         IReadOnlyDictionary<string, VideoSource> videos,
         ElementJob? cloneOf = null,
-        string? instance = null)
+        string? instance = null,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
     {
         // A copy needs no content of its own: it is cloned from the element it copies once that exists.
         if (cloneOf is not null)
-            return new ElementJob(column, elementType, cloneOf.ContentType, cloneOf.Source, imageSizes, configure, configureIndex, name, displayTemplateKey, displaySettings, videos, cloneOf, instance);
+            return new ElementJob(column, elementType, cloneOf.ContentType, cloneOf.Source, imageSizes, configure, configureIndex, name, displayTemplateKey, displaySettings, videos, cloneOf, instance, imageProviders);
 
         var elementContentType = contentTypeRepository.Load(elementType)
             ?? throw new InvalidOperationException(
@@ -395,7 +397,7 @@ internal sealed class SectionSeeder(
 
         return new ElementJob(
             column, elementType, elementContentType, elementSource, imageSizes, configure, configureIndex,
-            name, displayTemplateKey, displaySettings, videos, null, instance);
+            name, displayTemplateKey, displaySettings, videos, null, instance, imageProviders);
     }
 
     // Fills an element with generated content. Safe to run for several elements at once.
@@ -408,7 +410,7 @@ internal sealed class SectionSeeder(
         using var _ = SeedInstanceScope.Enter(job.Instance);
 
         var elProps = GetContentProperties(job.ElementType).ToList();
-        await contentGenerationProvider.PopulateAsync(job.Source, elProps, language, job.ElementType, job.ImageSizes, ct).ConfigureAwait(false);
+        await contentGenerationProvider.PopulateWithImageProvidersAsync(job.Source, elProps, language, job.ElementType, job.ImageSizes, job.ImageProviders, ct).ConfigureAwait(false);
         await videos.ApplyVideosAsync(job.Source, job.Videos, ct).ConfigureAwait(false);
         job.Configure?.Invoke(job.Source, job.ConfigureIndex);
 
@@ -494,7 +496,7 @@ internal sealed class SectionSeeder(
                     jobs.Add(seeder.NewElementJob(
                         col, elDef.Type, elDef.ImageSizes, elDef.Configure, 0,
                         elDef.Name, elDef.DisplayTemplateKey, elDef.DisplaySettings, elDef.Videos,
-                        instance: elDef.Instance));
+                        instance: elDef.Instance, imageProviders: elDef.ImageProviders));
                 }
             }
         }
@@ -517,7 +519,8 @@ internal sealed class SectionSeeder(
                     var job = seeder.NewElementJob(
                         col, repeating.Type, repeating.ImageSizes, repeating.Configure, elementIndex++,
                         name, repeating.DisplayTemplateKey, repeating.DisplaySettings, repeating.Videos,
-                        cloneOf: repeating.ReuseContent ? firstOfRepeating : null, instance: repeating.Instance);
+                        cloneOf: repeating.ReuseContent ? firstOfRepeating : null, instance: repeating.Instance,
+                        imageProviders: repeating.ImageProviders);
                     firstOfRepeating ??= job;
                     jobs.Add(job);
                 }

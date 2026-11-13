@@ -13,6 +13,13 @@ public sealed class ContentSeederOptions
     public bool SeedOnStartup { get; set; }
 
     /// <summary>
+    /// Where seeded images come from: <see cref="Options.ImageProvider.Picsum"/>, <see cref="Options.ImageProvider.DoodleIpsum"/>
+    /// or <see cref="Options.ImageProvider.Generated"/>. Images drawn in code are always the fallback if the chosen
+    /// source cannot be reached. Bound from <c>ContentSeeder:ImageProvider</c>. Default: Picsum.
+    /// </summary>
+    public ImageProvider ImageProvider { get; set; } = ImageProvider.Picsum;
+
+    /// <summary>
     /// Slash-separated path (relative to the site's global assets root) of the folder that
     /// holds media assets created by <see cref="Abstractions.IImageContentFactory"/>.
     /// Bound from <c>ContentSeeder:SeededImagesFolder</c>. Default: "Images/Seeded".

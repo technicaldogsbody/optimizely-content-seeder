@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Providers.Bogus;
 
@@ -76,12 +77,23 @@ public abstract class AiContentGenerationProvider(
     protected virtual bool IsConfigurationError(Exception exception) => false;
 
     /// <inheritdoc/>
-    public async Task PopulateAsync(
+    public Task PopulateAsync(
         object content,
         IEnumerable<PropertyInfo> properties,
         string language,
         Type? contentType = null,
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes = null,
+        CancellationToken ct = default)
+        => PopulateAsync(content, properties, language, contentType, imageSizes, imageProviders: null, ct);
+
+    /// <inheritdoc/>
+    public async Task PopulateAsync(
+        object content,
+        IEnumerable<PropertyInfo> properties,
+        string language,
+        Type? contentType,
+        IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders,
         CancellationToken ct = default)
     {
         var props = properties as IReadOnlyList<PropertyInfo> ?? properties.ToList();
@@ -92,7 +104,7 @@ public abstract class AiContentGenerationProvider(
         // The Bogus fallback applies the definition's generator rules too, so they set the placeholder values that an
         // item keeps if the AI request fails. The AI itself is driven by the writing brief, not by those rules. Fields the
         // brief leaves blank are cleared again, whether or not the AI runs.
-        await fallback.PopulateAsync(content, props, language, contentType, imageSizes, ct).ConfigureAwait(false);
+        await fallback.PopulateAsync(content, props, language, contentType, imageSizes, imageProviders, ct).ConfigureAwait(false);
         ClearBlank(content, props, typeBrief.BlankProperties);
 
         if (_disabledReason is not null)

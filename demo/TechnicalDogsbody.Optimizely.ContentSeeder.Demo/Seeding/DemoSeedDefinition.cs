@@ -2,6 +2,7 @@ using EPiServer.Core;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ContentTypes;
+using static TechnicalDogsbody.Optimizely.ContentSeeder.Definitions.SeedFactory;
 
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Demo.Seeding;
 
@@ -254,40 +255,37 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
             // ── Videos as plain blocks, one for each way of choosing one ──
             // A random recent video from a YouTube channel, with its real title as the caption.
             new("video-youtube", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.YouTube("UCSMOQeBJ2RAnuFungnQOxLg", titleProperty: nameof(VideoBlock.Caption)))),
             // The same channel by @handle (looked up from the channel page).
             new("video-youtube-handle", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.YouTube("@BlenderOfficial", titleProperty: nameof(VideoBlock.Caption)))),
             // A playlist, with a fallback in case it can't be read.
             new("video-youtube-playlist", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.YouTubePlaylist("PLa1F2ddGya_-UvuAqHAksYnB0qL9yWDO6", titleProperty: nameof(VideoBlock.Caption),
                         fallback: ["https://youtu.be/aqz-KE-bpKQ"]))),
             // A Vimeo channel (vimeo.com/channels/staffpicks).
             new("video-vimeo-channel", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.Vimeo("staffpicks", titleProperty: nameof(VideoBlock.Caption)))),
             // Edge case: a fixed list of URLs in different forms (short, embed). No title comes with these, so the
             // caption is generated (Bogus or AI) instead.
             new("video-url-list", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.Urls("https://youtu.be/aqz-KE-bpKQ", "https://player.vimeo.com/video/265010648"))),
             // Edge case: a channel that doesn't exist. The feed 404s, one warning is logged, and the fallback URL is used.
             new("video-bad-feed-fallback", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.YouTube("UC0000000000000000000000", fallback: ["https://youtu.be/aqz-KE-bpKQ"]))),
             // The uploaded sample, as a media asset rather than a URL.
             new("video-uploaded", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.Video), VideoSource.Uploaded())),
+                videos: Video(nameof(VideoBlock.Video), VideoSource.Uploaded())),
             // Edge case: both at once. The uploaded file wins in the view; the URL is still stored.
             new("video-uploaded-and-url", typeof(VideoBlock),
-                videos: new Dictionary<string, VideoSource>
-                {
-                    [nameof(VideoBlock.Video)] = VideoSource.Uploaded(),
-                    [nameof(VideoBlock.VideoUrl)] = VideoSource.Vimeo("staffpicks", titleProperty: nameof(VideoBlock.Caption)),
-                }),
+                videos: Video(nameof(VideoBlock.Video), VideoSource.Uploaded())
+                    .Video(nameof(VideoBlock.VideoUrl), VideoSource.Vimeo("staffpicks", titleProperty: nameof(VideoBlock.Caption)))),
         };
 
         // ════════════════════════════════════════════════════════════════════
@@ -307,7 +305,7 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
                             new ElementDefinition(typeof(ButtonElementBlock), name: "CTA Button"),
                             // An uploaded video: the sample clip is downloaded once and saved as a media asset.
                             new ElementDefinition(typeof(VideoBlock), name: "Video",
-                                videos: Videos(nameof(VideoBlock.Video), VideoSource.Uploaded()))
+                                videos: Video(nameof(VideoBlock.Video), VideoSource.Uploaded()))
                         ])
                     ]),
                     // One row per column count from 1 to 6: rows of 1, 2, 3, 4, 5 and 6 rich-text columns. reuseContent generates the text
@@ -317,7 +315,7 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
                     // Rows of 1, 2 and 3 videos (six in all). Without reuseContent each element picks its own video from the
                     // channel, and picks do not repeat until the feed has been used up.
                     new RepeatingElementDefinition(typeof(VideoBlock), name: "Repeated Video", minColumns: 1, maxColumns: 3,
-                        videos: Videos(nameof(VideoBlock.VideoUrl),
+                        videos: Video(nameof(VideoBlock.VideoUrl),
                             VideoSource.YouTube("UCSMOQeBJ2RAnuFungnQOxLg", titleProperty: nameof(VideoBlock.Caption))))
                 ]),
 
@@ -388,14 +386,14 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
                         new ColumnDefinition(elements:
                         [
                             new ElementDefinition(typeof(VideoBlock), name: "Uploaded video",
-                                videos: Videos(nameof(VideoBlock.Video), VideoSource.Uploaded()),
+                                videos: Video(nameof(VideoBlock.Video), VideoSource.Uploaded()),
                                 displayTemplateKey: "videoDefault",
                                 displaySettings: Style(("aspectRatio", "standard"), ("autoplay", "true")))
                         ]),
                         new ColumnDefinition(elements:
                         [
                             new ElementDefinition(typeof(VideoBlock), name: "Linked video",
-                                videos: Videos(nameof(VideoBlock.VideoUrl),
+                                videos: Video(nameof(VideoBlock.VideoUrl),
                                     VideoSource.Urls("https://youtu.be/aqz-KE-bpKQ", "https://vimeo.com/265010648")),
                                 displayTemplateKey: "videoDefault",
                                 displaySettings: Style(("aspectRatio", "square")))
@@ -451,7 +449,7 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
 
             // A video as a Visual Builder section: a random video from Blender's Vimeo page (vimeo.com/yourown3dsoftware).
             new("video-section", typeof(VideoBlock),
-                videos: Videos(nameof(VideoBlock.VideoUrl),
+                videos: Video(nameof(VideoBlock.VideoUrl),
                     VideoSource.VimeoUser("yourown3dsoftware", titleProperty: nameof(VideoBlock.Caption)))),
         };
 
@@ -599,12 +597,6 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
     }
 
     // ── small helpers so the tree above stays readable ───────────────────────────────────────────────────────────────
-
-    private static Dictionary<string, (int, int)> Image(string property, int width, int height)
-        => new() { [property] = (width, height) };
-
-    private static Dictionary<string, VideoSource> Videos(string property, VideoSource source)
-        => new() { [property] = source };
 
     private static Dictionary<string, string> Style(params (string Key, string Value)[] settings)
         => settings.ToDictionary(s => s.Key, s => s.Value);

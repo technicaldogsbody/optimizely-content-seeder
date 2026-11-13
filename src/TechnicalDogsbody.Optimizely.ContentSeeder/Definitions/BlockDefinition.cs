@@ -1,3 +1,5 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
+
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 
 /// <summary>
@@ -27,6 +29,12 @@ public sealed class BlockDefinition
     public IReadOnlyDictionary<string, (int Width, int Height)>? ImageSizes { get; }
 
     /// <summary>
+    /// Which image source each image property uses, keyed by property name (see <see cref="ImageProvider"/>). A property in
+    /// <see cref="ImageSizes"/> with no entry here uses the configured default (<c>ContentSeeder:ImageProvider</c>).
+    /// </summary>
+    public IReadOnlyDictionary<string, ImageProvider>? ImageProviders { get; }
+
+    /// <summary>
     /// Where video properties get their value, keyed by property name (see <see cref="VideoSource"/>).
     /// Empty when none are declared.
     /// </summary>
@@ -46,7 +54,8 @@ public sealed class BlockDefinition
         Action<object, int>? configure = null,
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
-        string? instance = null)
+        string? instance = null,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(type);
@@ -54,6 +63,7 @@ public sealed class BlockDefinition
         Type = type;
         Configure = configure;
         ImageSizes = imageSizes;
+        ImageProviders = ImageSet.Merge(imageSizes, imageProviders);
         Videos = videos ?? new Dictionary<string, VideoSource>();
         Instance = DefinitionInstance.Normalise(instance);
     }

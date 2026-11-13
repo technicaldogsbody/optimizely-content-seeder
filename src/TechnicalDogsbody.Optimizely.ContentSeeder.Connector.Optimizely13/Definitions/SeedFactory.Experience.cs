@@ -1,3 +1,5 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
+
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 
 /// <summary>
@@ -15,8 +17,9 @@ public static partial class SeedFactory
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes = null,
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
-        string? instance = null)
-        => new(type, count, contentAreaAssignments, sections, configure, imageSizes, children, videos, instance);
+        string? instance = null,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
+        => new(type, count, contentAreaAssignments, sections, configure, imageSizes, children, videos, instance, imageProviders);
 
     /// <summary>
     /// The content for one seed definition, including the Visual Builder section blueprints. Pass <c>null</c> for

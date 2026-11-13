@@ -110,7 +110,7 @@ internal sealed class PageSeeder(
 
         // Use the concrete type (not the Castle proxy) — see CreateBlockLanguageBranchAsync for rationale.
         var props = GetContentProperties(node.Type).ToList();
-        await contentGenerationProvider.PopulateAsync(page, props, language, node.Type, node.ImageSizes, ct).ConfigureAwait(false);
+        await contentGenerationProvider.PopulateWithImageProvidersAsync(page, props, language, node.Type, node.ImageSizes, node.ImageProviders, ct).ConfigureAwait(false);
         await videos.ApplyVideosAsync(page, node.Videos, ct).ConfigureAwait(false);
         node.Configure?.Invoke(page, instanceIndex);
 
@@ -214,7 +214,7 @@ internal sealed class PageSeeder(
         var props = GetContentProperties(node.Type)
             .Where(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null)
             .ToList();
-        await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, node.Type, node.ImageSizes, node.Videos, ct).ConfigureAwait(false);
+        await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, node.Type, node.ImageSizes, node.Videos, ct, node.ImageProviders).ConfigureAwait(false);
         LanguageTranslator.ConfigureLanguageVersion(branch, node.Configure, instanceIndex, node.Type);
 
         // A page's layout belongs to each language version. Without one, the page throws when it is rendered in

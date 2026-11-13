@@ -1,3 +1,4 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,7 +28,7 @@ public static partial class SeedTreeFingerprint
         sb.Append("L|").Append(masterLanguage).Append('|').AppendJoin(',', languages ?? []).Append('\n');
 
         foreach (var block in tree.Blocks)
-            sb.Append("B|").Append(block.Id).Append('|').Append(TypeName(block.Type)).Append('|').Append(Images(block.ImageSizes)).Append(Videos(block.Videos)).Append(Instance(block.Instance)).Append('\n');
+            sb.Append("B|").Append(block.Id).Append('|').Append(TypeName(block.Type)).Append('|').Append(Images(block.ImageSizes, block.ImageProviders)).Append(Videos(block.Videos)).Append(Instance(block.Instance)).Append('\n');
 
         AppendSections(sb, tree);
 
@@ -48,7 +49,7 @@ public static partial class SeedTreeFingerprint
     {
         string indent = new(' ', depth);
         sb.Append(indent).Append("N|").Append(TypeName(node.Type)).Append('|')
-          .Append(node.Count.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Images(node.ImageSizes)).Append(Videos(node.Videos)).Append(Instance(node.Instance)).Append('\n');
+          .Append(node.Count.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Images(node.ImageSizes, node.ImageProviders)).Append(Videos(node.Videos)).Append(Instance(node.Instance)).Append('\n');
 
         foreach (var assignment in node.ContentAreaAssignments)
             sb.Append(indent).Append(" A|").Append(assignment.PropertyName).Append('|').AppendJoin(',', assignment.BlockIds).Append('\n');
@@ -65,11 +66,20 @@ public static partial class SeedTreeFingerprint
     internal static string Instance(string? instance)
         => instance is null ? string.Empty : "|I:" + instance;
 
-    internal static string Images(IReadOnlyDictionary<string, (int Width, int Height)>? sizes)
-        => sizes is null
+    // Image providers are appended only when declared, so a definition that never names one keeps the fingerprint it always had.
+    internal static string Images(
+        IReadOnlyDictionary<string, (int Width, int Height)>? sizes,
+        IReadOnlyDictionary<string, ImageProvider>? providers = null)
+    {
+        string result = sizes is null
             ? string.Empty
             : string.Join(',', sizes.OrderBy(k => k.Key, StringComparer.Ordinal)
                 .Select(k => string.Create(CultureInfo.InvariantCulture, $"{k.Key}={k.Value.Width}x{k.Value.Height}")));
+
+        return providers is { Count: > 0 }
+            ? result + "|P:" + string.Join(',', providers.OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"))
+            : result;
+    }
 
     // Empty when no videos are declared, so a definition without videos keeps the fingerprint it always had.
     internal static string Videos(IReadOnlyDictionary<string, VideoSource> videos)

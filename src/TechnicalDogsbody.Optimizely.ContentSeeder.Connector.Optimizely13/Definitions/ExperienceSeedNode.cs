@@ -1,3 +1,5 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
+
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 
 /// <summary>
@@ -24,8 +26,9 @@ public sealed class ExperienceSeedNode : SeedNode
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes = null,
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
-        string? instance = null)
-        : base(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance)
+        string? instance = null,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
+        : base(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance, imageProviders)
     {
         Sections = sections ?? [];
     }

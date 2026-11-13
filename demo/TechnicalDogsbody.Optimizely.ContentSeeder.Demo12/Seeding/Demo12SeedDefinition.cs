@@ -1,6 +1,7 @@
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Demo12.ContentTypes;
+using static TechnicalDogsbody.Optimizely.ContentSeeder.Definitions.SeedFactory;
 
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Demo12.Seeding;
 
@@ -140,6 +141,4 @@ public sealed class Demo12SeedDefinition : IAiSeedDefinition
         return SeedFactory.Tree(blocks, [startPage]);
     }
 
-    private static Dictionary<string, (int Width, int Height)> Image(string property, int width, int height)
-        => new() { [property] = (width, height) };
 }

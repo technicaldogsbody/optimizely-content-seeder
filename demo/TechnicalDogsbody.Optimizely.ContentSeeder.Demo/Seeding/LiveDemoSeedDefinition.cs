@@ -1,6 +1,8 @@
 using TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Definitions;
 using TechnicalDogsbody.Optimizely.ContentSeeder.Demo.ContentTypes;
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
+using static TechnicalDogsbody.Optimizely.ContentSeeder.Definitions.SeedFactory;
 
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Demo.Seeding;
 
@@ -71,13 +73,13 @@ public sealed class LiveDemoSeedDefinition : IAiSeedDefinition
                         new ColumnDefinition(elements:
                         [
                             new ElementDefinition(typeof(VideoBlock), name: "Channel video",
-                                videos: Videos(nameof(VideoBlock.VideoUrl),
+                                videos: Video(nameof(VideoBlock.VideoUrl),
                                     VideoSource.YouTube("@BlenderOfficial", titleProperty: nameof(VideoBlock.Caption)))),
                         ]),
                         new ColumnDefinition(elements:
                         [
                             new ElementDefinition(typeof(VideoBlock), name: "Embedded video",
-                                videos: Videos(nameof(VideoBlock.VideoUrl),
+                                videos: Video(nameof(VideoBlock.VideoUrl),
                                     VideoSource.Urls("https://www.youtube.com/embed/aqz-KE-bpKQ"))),
                         ]),
                     ]),
@@ -89,7 +91,7 @@ public sealed class LiveDemoSeedDefinition : IAiSeedDefinition
             children: [
                 SeedFactory.Page(typeof(ArticlePage),
                 count: 2,
-                imageSizes: Image(nameof(ArticlePage.HeroImage), 1200, 630))]);
+                imageSizes: Image(nameof(ArticlePage.HeroImage), 1200, 630, ImageProvider.DoodleIpsum))]);
 
         var experience = SeedFactory.Experience(typeof(LandingPageExperience), count: 1,
             configure: (page, _) => ((LandingPageExperience)page).Name = "Landing page",
@@ -114,9 +116,5 @@ public sealed class LiveDemoSeedDefinition : IAiSeedDefinition
         return SeedFactory.Tree(blocks: blocks, nodes: [home], sections: sections);
     }
 
-    private static Dictionary<string, (int, int)> Image(string property, int width, int height)
-        => new() { [property] = (width, height) };
 
-    private static Dictionary<string, VideoSource> Videos(string property, VideoSource source)
-        => new() { [property] = source };
 }

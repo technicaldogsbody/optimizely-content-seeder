@@ -44,14 +44,36 @@ public sealed class BogusContentGenerationProvider(
     private readonly IContentModelAdapter _model = contentModel ?? new NullContentModelAdapter();
 
     /// <inheritdoc/>
-    public async Task PopulateAsync(
+    public Task PopulateAsync(
         object content,
         IEnumerable<PropertyInfo> properties,
         string language,
         Type? contentType = null,
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes = null,
         CancellationToken ct = default)
+        => PopulateAsync(content, properties, language, contentType, imageSizes, imageProviders: null, ct);
+
+    /// <inheritdoc/>
+    public async Task PopulateAsync(
+        object content,
+        IEnumerable<PropertyInfo> properties,
+        string language,
+        Type? contentType,
+        IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders,
+        CancellationToken ct = default)
     {
+        if (imageProviders is not null)
+        {
+            foreach (string name in imageProviders.Keys)
+            {
+                if (imageSizes is null || !imageSizes.ContainsKey(name))
+                    logger.LogWarning(
+                        "ContentSeeder: imageProviders names {PropertyName} on {ContentType}, but imageSizes does not, so no image is created for it.",
+                        name, contentType?.Name ?? content.GetType().Name);
+            }
+        }
+
         var faker = CreateFaker(language);
         string? typeName = contentType?.Name;
 
@@ -78,9 +100,9 @@ public sealed class BogusContentGenerationProvider(
                 {
                     try
                     {
-                        var image = await imageContentFactory
-                            .CreateImageAsync(size.Width, size.Height, ct)
-                            .ConfigureAwait(false);
+                        var image = imageProviders is not null && imageProviders.TryGetValue(prop.Name, out var provider)
+                            ? await imageContentFactory.CreateImageAsync(size.Width, size.Height, provider, ct).ConfigureAwait(false)
+                            : await imageContentFactory.CreateImageAsync(size.Width, size.Height, ct).ConfigureAwait(false);
 
                         if (!image.IsEmpty)
                             prop.SetValue(content, _model.FromAsset(prop.PropertyType, image));

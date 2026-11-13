@@ -235,6 +235,30 @@ imageSizes: new Dictionary<string, (int, int)>
 
 Images are downloaded from [Picsum Photos](https://picsum.photos/) and saved as `ImageData` assets in Optimizely's asset tree.
 
+`SeedFactory.Image` is a shorter way to write the same thing, and lets a property choose its own source. A property with no
+source uses the default below. Chain `.Image(...)` for more than one property:
+
+```csharp
+imageSizes: Image(nameof(ArticlePage.HeroImage), 1200, 630, ImageProvider.Generated)
+                .Image(nameof(ArticlePage.CardImage), 400, 300)   // CardImage uses the default
+```
+
+(`using static TechnicalDogsbody.Optimizely.ContentSeeder.Definitions.SeedFactory;` lets you call it as `Image(...)`.)
+
+You can also pass the sources separately with `imageProviders`, a `Dictionary<string, ImageProvider>` keyed by property name;
+an entry there wins over the helper. It is available wherever `imageSizes` is. A property named in `imageProviders` but not
+in `imageSizes` gets no image, and a warning is logged.
+
+Choose the default source with `ContentSeeder:ImageProvider`: `Picsum` (the default, photos), `DoodleIpsum`
+([illustrations](https://doodleipsum.com/)) or `Generated` (a plain grey panel showing its dimensions, e.g. "600 × 400", drawn in code with no network calls). Whichever
+you choose, the generated image is always the fallback if the source cannot be reached. It uses no native graphics library,
+so it behaves the same on Windows and Linux. A source that fails is skipped for the rest of the run. To use your own
+source, call `.UseImageSource<T>()` on the `AddContentSeeder` builder.
+
+The generated image's text is set in [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic), whose glyph outlines
+are built into the package. Noto Sans is copyright 2022 The Noto Project Authors and licensed under the
+[SIL Open Font License 1.1](https://openfontlicense.org).
+
 ### Videos
 
 Declare video properties with `videos`, the video equivalent of `imageSizes`. The key is the property name; the value says
@@ -252,6 +276,14 @@ new BlockDefinition("video", typeof(VideoBlock),
         // The sample video, saved once as a media asset and shared by everything that asks for it.
         [nameof(VideoBlock.Video)] = VideoSource.Uploaded(),
     })
+```
+
+`SeedFactory.Video` is a shorter way to write the same thing; chain `.Video(...)` for more than one property (with
+`using static TechnicalDogsbody.Optimizely.ContentSeeder.Definitions.SeedFactory;` you can call it as `Video(...)`):
+
+```csharp
+videos: Video(nameof(VideoBlock.VideoUrl), VideoSource.YouTube("UCSMOQeBJ2RAnuFungnQOxLg", titleProperty: nameof(VideoBlock.Caption)))
+            .Video(nameof(VideoBlock.Video), VideoSource.Uploaded())
 ```
 
 | Source | Picks | Property type |
@@ -460,6 +492,7 @@ public class MyCustomPropertyMap(IOptions<BogusGeneratorMapOptions> options)
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `SeedOnStartup` | `bool` | `false` | Run all pending definitions automatically on startup. |
+| `ImageProvider` | `Picsum` \| `DoodleIpsum` \| `Generated` | `Picsum` | Where seeded images come from. Images drawn in code are always the fallback if the chosen source is unreachable. |
 | `SeededImagesFolder` | `string` | `"Images/Seeded"` | Folder (relative to the site's global assets root) where seeded media (images and the sample video) is uploaded. Deleted in full on Reseed/Delete All, so re-seeding never accumulates orphaned assets. |
 | `SeededBlocksFolder` | `string` | `"Seeded"` | Folder under For All Sites where a seed's shared blocks are created, one subfolder per seed definition (`Seeded/{seed id}`). Each seed's folder is removed on Delete once it is empty. Blocks seeded before this option existed stay where they are until they are deleted and seeded again. |
 | `MasterLanguage` | `string` | `"en"` | Language code used for the primary content version. |
@@ -654,8 +687,7 @@ The package registers a gadget in the Optimizely CMS admin panel under **Content
 
 It shows the seeded page, block and section counts, and which providers are generating the content. While a run is in
 progress the **Last seeded** tile becomes **Running for**, showing how long the run has been going; when idle it shows
-when the last seed completed. The counts update live during a run: **Text** (Bogus, or the AI provider and its model, marked ✦) and **Images** (Picsum
-Photos). A custom provider shows its type name, or implement `IDescribesProvider` to give it a proper name.
+when the last seed completed. The counts update live during a run: **Text** (Bogus, or the AI provider and its model, marked ✦) and **Images** (Picsum Photos). A custom provider shows its type name, or implement `IDescribesProvider` to give it a proper name.
 
 The **Seed definition** dropdown chooses what the actions apply to: one seed definition, or **All definitions**. Each
 definition in the list shows its page count, whether it is changed, and whether a run was interrupted.

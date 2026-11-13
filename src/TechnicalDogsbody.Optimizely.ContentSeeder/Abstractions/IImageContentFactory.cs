@@ -1,3 +1,5 @@
+using TechnicalDogsbody.Optimizely.ContentSeeder.Options;
+
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 
 /// <summary>
@@ -14,6 +16,17 @@ public interface IImageContentFactory
     /// <param name="height">Image height in pixels.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<ContentHandle> CreateImageAsync(int width, int height, CancellationToken ct = default);
+
+    /// <summary>
+    /// As <see cref="CreateImageAsync(int, int, CancellationToken)"/>, but from a specific image source.
+    /// A custom factory that does not override this ignores the choice and uses its own source.
+    /// </summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="provider">The image source to use.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<ContentHandle> CreateImageAsync(int width, int height, ImageProvider? provider, CancellationToken ct = default)
+        => CreateImageAsync(width, height, ct);
 
     /// <summary>
     /// Deletes the seeded images of one definition, or of every definition, from the seeded images folder
