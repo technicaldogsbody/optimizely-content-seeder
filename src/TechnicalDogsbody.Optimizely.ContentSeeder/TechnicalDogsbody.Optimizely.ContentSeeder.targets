@@ -1,15 +1,34 @@
 <Project>
   <!--
     TechnicalDogsbody.Optimizely.ContentSeeder
-    MSBuild targets for the shared React admin UI. Builds the client, then copies the built assets into the consuming project's
-    modules/_protected/ folder so EPiServer serves them under /EPiServer/TechnicalDogsbody.Optimizely.ContentSeeder/.
-    Every CMS connector uses the same UI, so these targets live with the core.
+    MSBuild targets for the shared React admin UI. Not packed: the connector projects import this file to build the module
+    zip they ship, and the demos import it to build the same zip from source.
+
+    The zip follows the Optimizely protected-module layout, the same as the CMS's own add-ons:
+      module.config            clientResourceRelativePath set to the version
+      {version}/index.html
+      {version}/assets/...
+    The connector's packed targets copy it to modules/_protected/TechnicalDogsbody.Optimizely.ContentSeeder/, and the CMS
+    serves the files from inside it. The version folder changes the asset URLs with each release, so browsers never keep
+    an old UI.
+
+    Inputs (set before calling CreateContentSeederModuleZip):
+      ContentSeederModuleConfig   the connector's module.config (required; the target is skipped without it)
+      ContentSeederModuleVersion  the version folder name (default: $(Version))
+      ContentSeederModuleZip      where to write the zip (default: obj\ContentSeederModule\ in the calling project)
   -->
+
+  <PropertyGroup>
+    <ContentSeederModuleName>TechnicalDogsbody.Optimizely.ContentSeeder</ContentSeederModuleName>
+    <ContentSeederUIDir>$(MSBuildThisFileDirectory)UI\wwwroot\ContentSeeder\</ContentSeederUIDir>
+    <ContentSeederModuleWorkDir>$(MSBuildProjectDirectory)\obj\ContentSeederModule\</ContentSeederModuleWorkDir>
+    <ContentSeederModuleZip Condition="'$(ContentSeederModuleZip)' == ''">$(ContentSeederModuleWorkDir)$(ContentSeederModuleName).zip</ContentSeederModuleZip>
+  </PropertyGroup>
 
   <!-- Build the React UI only when asked (ContentSeederBuildUI=true). An ordinary build leaves the committed UI alone: it
        rewrites UI/wwwroot, and CI rebuilds and diffs that folder on its own. Run npm run build in UI/client to update it. -->
   <Target Name="BuildContentSeederUI"
-          BeforeTargets="Build"
+          BeforeTargets="CreateContentSeederModuleZip"
           Condition="'$(ContentSeederBuildUI)' == 'true' And Exists('$(MSBuildThisFileDirectory)UI\client\package.json')">
     <Message Text="Building ContentSeeder React UI..." Importance="high" />
     <Exec Command="npm ci --prefer-offline"
@@ -20,28 +39,39 @@
           ConsoleToMSBuild="true" />
   </Target>
 
-  <!-- Copy built UI assets into the consuming project's modules/_protected/ so EPiServer serves -->
-  <!-- them under /EPiServer/TechnicalDogsbody.Optimizely.ContentSeeder/, preserving the shell chrome. -->
-  <Target Name="CopyContentSeederUIToModule"
-          AfterTargets="Build"
-          Condition="Exists('$(MSBuildThisFileDirectory)UI\wwwroot\ContentSeeder\assets\index.js')">
+  <!-- Stage module.config and the built UI in the module layout above, then zip it. -->
+  <Target Name="CreateContentSeederModuleZip"
+          BeforeTargets="CopyContentSeederModule"
+          Condition="'$(ContentSeederModuleConfig)' != ''">
+
+    <Error Condition="!Exists('$(ContentSeederUIDir)assets\index.js')"
+           Text="The ContentSeeder UI is not built: $(ContentSeederUIDir)assets\index.js is missing. Run npm run build in UI/client." />
 
     <PropertyGroup>
-      <ContentSeederModuleUIDir>$(MSBuildProjectDirectory)\modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\</ContentSeederModuleUIDir>
+      <ContentSeederModuleVersion Condition="'$(ContentSeederModuleVersion)' == ''">$(Version)</ContentSeederModuleVersion>
+      <_ContentSeederStagingDir>$(ContentSeederModuleWorkDir)staging\</_ContentSeederStagingDir>
     </PropertyGroup>
 
-    <Message Text="Copying ContentSeeder UI to $(ContentSeederModuleUIDir)" Importance="normal" />
-
     <ItemGroup>
-      <ContentSeederUIFiles Include="$(MSBuildThisFileDirectory)UI\wwwroot\ContentSeeder\**\*" />
+      <_ContentSeederUIFiles Include="$(ContentSeederUIDir)**\*" />
     </ItemGroup>
 
-    <MakeDir Directories="$(ContentSeederModuleUIDir)" />
+    <RemoveDir Directories="$(_ContentSeederStagingDir)" />
 
-    <Copy SourceFiles="@(ContentSeederUIFiles)"
-          DestinationFiles="@(ContentSeederUIFiles->'$(ContentSeederModuleUIDir)%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="$(ContentSeederModuleConfig)" DestinationFolder="$(_ContentSeederStagingDir)" />
+    <XmlPoke XmlInputPath="$(_ContentSeederStagingDir)module.config"
+             Query="/module/@clientResourceRelativePath"
+             Value="$(ContentSeederModuleVersion)" />
+
+    <Copy SourceFiles="@(_ContentSeederUIFiles)"
+          DestinationFiles="@(_ContentSeederUIFiles->'$(_ContentSeederStagingDir)$(ContentSeederModuleVersion)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(ContentSeederModuleZip)'))" />
+    <ZipDirectory SourceDirectory="$(_ContentSeederStagingDir)"
+                  DestinationFile="$(ContentSeederModuleZip)"
+                  Overwrite="true" />
+
+    <Message Text="ContentSeeder module zip ($(ContentSeederModuleVersion)) -> $(ContentSeederModuleZip)" Importance="normal" />
   </Target>
 
 </Project>

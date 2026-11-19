@@ -1,23 +1,32 @@
 <Project>
   <!--
-    TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13
-    MSBuild targets. Deploys module.config to modules/_protected/ so EPiServer discovers the module. The shared admin UI is
-    deployed by TechnicalDogsbody.Optimizely.ContentSeeder.targets in the core package.
+    TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12
+    MSBuild targets. Deploys the module zip (module.config and the shared admin UI) to modules/_protected/ so EPiServer
+    discovers the module and serves the UI from inside the zip.
   -->
 
-  <!-- Deploy the module.config into the consuming project's modules/_protected/ folder.  -->
-  <!-- EPiServer reads this plain file to discover the assembly and register menu providers. -->
-  <Target Name="CopyContentSeederModuleConfig"
-          BeforeTargets="Build"
-          Condition="Exists('$(MSBuildThisFileDirectory)module.config')">
+  <PropertyGroup>
+    <!-- The zip packed next to this file. The demos build it from source and set this before importing. -->
+    <ContentSeederModuleZip Condition="'$(ContentSeederModuleZip)' == ''">$(MSBuildThisFileDirectory)TechnicalDogsbody.Optimizely.ContentSeeder.zip</ContentSeederModuleZip>
+  </PropertyGroup>
+
+  <Target Name="CopyContentSeederModule"
+          BeforeTargets="Build">
 
     <PropertyGroup>
       <ContentSeederModuleDir>$(MSBuildProjectDirectory)\modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\</ContentSeederModuleDir>
     </PropertyGroup>
 
+    <Error Condition="!Exists('$(ContentSeederModuleZip)')"
+           Text="The ContentSeeder module zip was not found at $(ContentSeederModuleZip)." />
+
+    <!-- Earlier versions deployed loose files here. Left in place, they could be served instead of the zip. -->
+    <Delete Files="$(ContentSeederModuleDir)module.config;$(ContentSeederModuleDir)index.html" />
+    <RemoveDir Directories="$(ContentSeederModuleDir)assets" />
+
     <MakeDir Directories="$(ContentSeederModuleDir)" />
 
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)module.config"
+    <Copy SourceFiles="$(ContentSeederModuleZip)"
           DestinationFolder="$(ContentSeederModuleDir)"
           SkipUnchangedFiles="true"
           OverwriteReadOnlyFiles="true" />

@@ -43,8 +43,11 @@
     <Folder Include="modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\" />
   </ItemGroup>
 
-  <!-- Import plugin targets so the module zip and UI assets are copied on build.
-       NuGet does this automatically; project references require an explicit import. -->
+  <!-- Import plugin targets so the module zip is built from source and copied on build.
+       NuGet does this automatically for the packaged zip; project references need an explicit import. -->
+  <PropertyGroup Condition="'$(ContentSeederUseLocalPackages)' != 'true'">
+    <ContentSeederModuleConfig>..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12\module.config</ContentSeederModuleConfig>
+  </PropertyGroup>
   <Import Project="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.targets" Condition="'$(ContentSeederUseLocalPackages)' != 'true'" />
   <Import Project="..\..\src\TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely12\TechnicalDogsbody.Optimizely.ContentSeeder.targets" Condition="'$(ContentSeederUseLocalPackages)' != 'true'" />
 

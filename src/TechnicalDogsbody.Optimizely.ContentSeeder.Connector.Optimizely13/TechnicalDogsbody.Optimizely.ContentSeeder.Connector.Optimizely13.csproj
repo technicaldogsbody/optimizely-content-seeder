@@ -52,16 +52,34 @@
   </ItemGroup>
 
   <!--
-    Module deployment: the targets file and module.config are packed under build/ so consumers pick them up. The shared
-    admin UI is packed by the core package.
+    Module deployment: the targets file and the module zip are packed under build/, so sites that reference this
+    connector pick them up. The zip holds module.config and the shared admin UI from the core project; it is built
+    just before the package, once, with the package version as its client-resource folder.
   -->
+  <Import Project="..\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.targets" />
+
+  <PropertyGroup>
+    <ContentSeederModuleConfig>$(MSBuildProjectDirectory)\module.config</ContentSeederModuleConfig>
+  </PropertyGroup>
+
+  <!-- The Razor SDK treats module.config as content and would pack it loose; it ships only inside the zip. -->
+  <ItemGroup>
+    <Content Remove="module.config" />
+    <None Include="module.config" />
+  </ItemGroup>
+
+  <!-- MinVer first, so the zip is versioned the same as the package. -->
+  <Target Name="PackContentSeederModuleZip"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="MinVer;CreateContentSeederModuleZip" />
+
   <ItemGroup>
     <None Include="TechnicalDogsbody.Optimizely.ContentSeeder.targets"
           Pack="true"
           PackagePath="build/TechnicalDogsbody.Optimizely.ContentSeeder.Connector.Optimizely13.targets" />
-    <None Include="module.config"
+    <None Include="$(ContentSeederModuleZip)"
           Pack="true"
-          PackagePath="build/module.config" />
+          PackagePath="build/" />
   </ItemGroup>
 
 </Project>

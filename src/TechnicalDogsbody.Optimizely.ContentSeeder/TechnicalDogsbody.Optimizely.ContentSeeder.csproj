@@ -51,17 +51,10 @@
     <None Include="..\..\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <!-- The shared admin UI: its build and copy targets, and the built assets. -->
-  <ItemGroup>
-    <None Include="TechnicalDogsbody.Optimizely.ContentSeeder.targets"
-          Pack="true"
-          PackagePath="build/TechnicalDogsbody.Optimizely.ContentSeeder.targets" />
-    <None Include="UI\wwwroot\**\*"
-          Pack="true"
-          PackagePath="contentFiles/any/any/UI/wwwroot/" />
-    <None Include="UI\wwwroot\ContentSeeder\**\*"
-          Pack="true"
-          PackagePath="build/UI/wwwroot/ContentSeeder/" />
-  </ItemGroup>
+  <!--
+    The shared admin UI is not packed here. Each connector ships it inside its module zip (built by
+    TechnicalDogsbody.Optimizely.ContentSeeder.targets), because sites reference a connector, and NuGet does not import
+    build/ assets from a dependency.
+  -->
 
 </Project>
