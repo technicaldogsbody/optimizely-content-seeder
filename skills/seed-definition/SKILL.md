@@ -88,8 +88,9 @@ public sealed class SiteSeedDefinition : ISeedDefinition
 |------|-------------|-------|
 | `SeedTree` | `(blocks?, nodes?, sections?)` | Root. Blocks are created first, then sections, then pages. |
 | `BlockDefinition` | `(id, type, configure?, imageSizes?)` | A shared block. `id` is referenced by `ContentAreaAssignment`. |
-| `SeedNode` | `(type, count = 1, contentAreaAssignments?, sections?, configure?, imageSizes?, children?)` | A page (or any content under a parent). Always use named arguments. |
-| `ContentAreaAssignment` | `(propertyName, blockIds)` | `propertyName` is a `ContentArea` property on that node's type. |
+| `SeedNode` | `(type, count = 1, contentAreaAssignments?, sections?, configure?, imageSizes?, children?, ..., key?, references?)` | A page (or any content under a parent). Always use named arguments. `key` names the page so other pages can point at it (count must be 1). |
+| `ContentAreaAssignment` | `(propertyName, blockIds)` | `propertyName` is a `ContentArea` property on that node's type. Each id is a block id or a page `key`; an area naming a page is filled after the whole tree exists. |
+| `ContentReferenceAssignment` | `(propertyName, key)` (or `SeedFactory.Reference(...)`) | In a page's `references`. Sets a `ContentReference`/`PageReference` property to a keyed page or a shared block id, after the whole tree exists, so siblings and later pages work. |
 | `configure` | `Action<object, int>` | Called after generation, before saving; `int` is the zero-based instance index. Cast `object` to the type. |
 | `imageSizes` | `Dictionary<string, (int Width, int Height)>` | Only the `ContentReference` properties listed get an image; the rest stay null. |
 | `videos` | `Dictionary<string, VideoSource>` | Last parameter of `BlockDefinition`, `SeedNode`, `SectionDefinition`, `ElementDefinition`, `RepeatingElementDefinition`. See "Videos" below. |
@@ -98,12 +99,13 @@ public sealed class SiteSeedDefinition : ISeedDefinition
 
 ## Rules that are easy to get wrong
 
-- **IDs share one namespace.** A `BlockDefinition.Id` and a `SectionDefinition.Id` must all be unique; every assignment must reference a declared id. `SeedTree.Validate()` throws otherwise.
+- **IDs share one namespace.** A `BlockDefinition.Id` and a `SectionDefinition.Id` must all be unique; every assignment must reference a declared id. Page `key`s must be unique and differ from every block id. `SeedTree.Validate()` throws otherwise.
+- **Page-to-page links (site settings, a listing's root, a "terms" page) use `key` + `references`, never `configure` or a manual CMS step.** Give the target page a `key`, and list a `ContentReferenceAssignment` on the page that points at it. Never tell the user to set these by hand after seeding.
 - **`ContentAreaAssignment` applies to the master language only.** Other languages get translated or generated text; shared blocks have their own language versions.
 - **Do not set text properties in `configure` unless you mean to override.** `configure` runs after the provider (Bogus or AI), so it wins. Use it for deterministic things such as `Name`, dates, or ordering, not for prose you want an AI to write.
 - **`configure` also runs for every language version, and a `[CultureSpecific]` value it sets is copied to each one unchanged.** So a title set in `configure` appears in English on every language. Use `configure` only for a value that should be the same everywhere (`Name`, a fixed date, ordering). Per-language text belongs in generator rules, with a language (`.Property(x => x.Title, "zh", f => ...)`). A property that isn't `[CultureSpecific]` (a date, a price, an image, a flag) applies to the master only; the seeder skips it on language versions rather than failing the save.
 - **Images** come only from `imageSizes`. Listing a property that is not a `ContentReference` does nothing.
-- **Changing the shape of a definition** (adding a node, section, block, or changing counts) is detected by the admin gadget, which suggests **Reseed**. Plain Seed never edits existing content.
+- **Changing the shape of a definition** (adding a node, section, block, or changing counts) is detected by the admin gadget, which suggests **Reseed**. Plain Seed never edits existing content, except to fill a `references` property that is still empty (an editor's value is kept).
 - **Everything is created through Optimizely's APIs**, so content types must be registered and a type derived from `ImageData` must exist if you use `imageSizes`.
 - Keep `count` small while developing. With AI generation every item is a request: use Dry run to see the number.
 
@@ -270,6 +272,7 @@ Ollama reasoning models (`gemma4`, `qwen3`…) think before they answer, which m
 
 - [ ] `Id` is unique and stable; blocks and sections have distinct ids.
 - [ ] Every `ContentAreaAssignment` property exists on that node's type and every block id is declared.
+- [ ] Every `ContentReference` property that should point at another seeded page or block has a `ContentReferenceAssignment`, and its target has that `key` (or block id).
 - [ ] `Sections` are only on `ExperienceData` nodes; `rows` only on `SectionData` types.
 - [ ] Property names use `nameof(...)`; `configure` casts to the right type.
 - [ ] Counts are modest, and the user knows to run Dry run first.

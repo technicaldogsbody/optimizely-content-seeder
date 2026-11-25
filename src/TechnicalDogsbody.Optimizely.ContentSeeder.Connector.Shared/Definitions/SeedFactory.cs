@@ -19,8 +19,16 @@ public static partial class SeedFactory
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
         string? instance = null,
-        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
-        => new(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance, imageProviders);
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null,
+        string? key = null,
+        IReadOnlyList<ContentReferenceAssignment>? references = null)
+        => new(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance, imageProviders, key, references);
+
+    /// <summary>
+    /// Points a content reference property at another seeded item: a page's <c>key</c> or a shared block's id. Pass the
+    /// result in a page's <c>references</c>.
+    /// </summary>
+    public static ContentReferenceAssignment Reference(string property, string key) => new(property, key);
 
     /// <summary>
     /// Declares an image property for <c>imageSizes</c>: its size and, optionally, which image source it uses

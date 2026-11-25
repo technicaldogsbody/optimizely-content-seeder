@@ -27,8 +27,10 @@ public sealed class ExperienceSeedNode : SeedNode
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
         string? instance = null,
-        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
-        : base(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance, imageProviders)
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null,
+        string? key = null,
+        IReadOnlyList<ContentReferenceAssignment>? references = null)
+        : base(type, count, contentAreaAssignments, configure, imageSizes, children, videos, instance, imageProviders, key, references)
     {
         Sections = sections ?? [];
     }

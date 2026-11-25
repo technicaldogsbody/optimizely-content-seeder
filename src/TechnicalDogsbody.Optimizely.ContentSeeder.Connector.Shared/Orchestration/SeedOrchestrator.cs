@@ -190,6 +190,7 @@ internal sealed class SeedOrchestrator(
         var tree = definition.Build();
         tree.Validate();
         InstanceNames.Validate(tree, definition);
+        PageSeeder.ValidateReferenceProperties(tree.Nodes, tree.Blocks.Select(b => b.Id).ToHashSet(StringComparer.Ordinal));
 
         // Content generation providers read definition-level settings (e.g. an AI writing brief) from here.
         definitionAccessor.Current = definition;
@@ -275,9 +276,13 @@ internal sealed class SeedOrchestrator(
             tree, definition.Id, masterLanguage, seedRunId, existingRecords, ct).ConfigureAwait(false);
 
         // 3. Seed page tree recursively
+        var links = new PageLinks(blockRefs.Keys);
         await Pages.SeedNodesAsync(
             tree.Nodes, rootPage, definition.Id, masterLanguage, additionalLanguages,
-            blockRefs, sectionSet, 0, seedRunId, completePagesQueue, ct).ConfigureAwait(false);
+            blockRefs, sectionSet, 0, seedRunId, completePagesQueue, links, ct).ConfigureAwait(false);
+
+        // 4. Point content reference properties at keyed pages and shared blocks, now that every page exists.
+        Pages.ApplyReferences(links, blockRefs, masterLanguage, additionalLanguages, ct);
     }
 
     // ── private: resuming over existing content ──────────────────────────────

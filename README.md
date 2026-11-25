@@ -165,7 +165,45 @@ Assigns one or more blocks to a `ContentArea` property on a page or block.
 new ContentAreaAssignment(nameof(StartPage.PromoArea), ["promo1", "promo2", "promo3"])
 ```
 
-The string IDs must match `BlockDefinition.Id` values declared in the same `SeedTree`.
+The string IDs must match `BlockDefinition.Id` values declared in the same `SeedTree`, or the `key` of a page in it (see
+[Content references between seeded items](#content-references-between-seeded-items)).
+
+### Content references between seeded items
+
+A page can point a `ContentReference` (or `PageReference`) property at another page in the same seed, or at a shared block.
+Give the target page a `key`, and list the properties to set in the pointing page's `references`:
+
+```csharp
+var home = SeedFactory.Page(
+    type: typeof(StartPage),
+    references:
+    [
+        SeedFactory.Reference(nameof(StartPage.SiteSettings), "site-settings"),
+        SeedFactory.Reference(nameof(StartPage.FeaturedPromo), "promo")   // a BlockDefinition id works too
+    ],
+    children:
+    [
+        SeedFactory.Page(typeof(SiteSettingsPage), key: "site-settings")
+    ]);
+```
+
+References are applied after the whole page tree exists, so a page can point at a sibling, a child, or a page declared
+after it. A keyed page must have `count: 1`, keys must be unique, and a key cannot be the same as a block id;
+`SeedTree.Validate()` checks this, and that every reference names a known key, before anything is created. A
+`PageReference` property can only point at a page.
+
+A property that already has a value is left alone, so an editor's change is kept. That also means running Seed on a site
+seeded before the reference was added fills it in, without a Reseed. A `[CultureSpecific]` property is set on every
+language version; any other property is shared by Optimizely and set on the master only.
+
+A `ContentAreaAssignment` can name keyed pages as well as blocks, in any order:
+
+```csharp
+new ContentAreaAssignment(nameof(StartPage.FeaturedArea), ["promo", "about-us"])   // a block, then a keyed page
+```
+
+An assignment that names only blocks is applied when its page is created, as before. One that names a page is applied
+after the whole tree exists, on the master language only, and only if the content area is still empty.
 
 ### Sections (CMS 13 only)
 

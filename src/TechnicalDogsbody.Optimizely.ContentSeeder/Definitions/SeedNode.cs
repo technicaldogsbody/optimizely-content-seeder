@@ -54,6 +54,18 @@ public class SeedNode
     public string? Instance { get; }
 
     /// <summary>
+    /// A name other pages use to point at this page (see <see cref="References"/>), or null. Unique within the tree, and
+    /// only allowed when <see cref="Count"/> is 1, so the key always means exactly one page.
+    /// </summary>
+    public string? Key { get; }
+
+    /// <summary>
+    /// Content reference properties set to other seeded content (a keyed page or a shared block). They are applied after
+    /// the whole page tree exists, so a page can point at a sibling or a page further down the tree.
+    /// </summary>
+    public IReadOnlyList<ContentReferenceAssignment> References { get; }
+
+    /// <summary>
     /// A page to seed: its content type, how many copies to create, and the pages beneath it.
     /// </summary>
     internal SeedNode(
@@ -65,11 +77,18 @@ public class SeedNode
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
         string? instance = null,
-        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null,
+        string? key = null,
+        IReadOnlyList<ContentReferenceAssignment>? references = null)
     {
         ArgumentNullException.ThrowIfNull(type);
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be >= 0.");
+        if (key is not null && string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("A page key cannot be blank.", nameof(key));
+
+        Key = key;
+        References = references ?? [];
 
         Type = type;
         Count = count;

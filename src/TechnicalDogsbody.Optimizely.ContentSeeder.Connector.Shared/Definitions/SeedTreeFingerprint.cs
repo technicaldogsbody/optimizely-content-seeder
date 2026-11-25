@@ -49,10 +49,13 @@ public static partial class SeedTreeFingerprint
     {
         string indent = new(' ', depth);
         sb.Append(indent).Append("N|").Append(TypeName(node.Type)).Append('|')
-          .Append(node.Count.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Images(node.ImageSizes, node.ImageProviders)).Append(Videos(node.Videos)).Append(Instance(node.Instance)).Append('\n');
+          .Append(node.Count.ToString(CultureInfo.InvariantCulture)).Append('|').Append(Images(node.ImageSizes, node.ImageProviders)).Append(Videos(node.Videos)).Append(Instance(node.Instance)).Append(Key(node.Key)).Append('\n');
 
         foreach (var assignment in node.ContentAreaAssignments)
             sb.Append(indent).Append(" A|").Append(assignment.PropertyName).Append('|').AppendJoin(',', assignment.BlockIds).Append('\n');
+
+        foreach (var reference in node.References)
+            sb.Append(indent).Append(" R|").Append(reference.PropertyName).Append('|').Append(reference.Key).Append('\n');
 
         AppendSlots(sb, node, indent);
 
@@ -65,6 +68,10 @@ public static partial class SeedTreeFingerprint
     // Empty when no named rule set is used, so a definition without one keeps the fingerprint it always had.
     internal static string Instance(string? instance)
         => instance is null ? string.Empty : "|I:" + instance;
+
+    // Empty when a page has no key, so a definition without keys keeps the fingerprint it always had.
+    internal static string Key(string? key)
+        => key is null ? string.Empty : "|K:" + key;
 
     // Image providers are appended only when declared, so a definition that never names one keeps the fingerprint it always had.
     internal static string Images(

@@ -137,6 +137,90 @@ public class SeedTreeValidationTests
         Assert.Contains("HeroContentArea", ex.Message);
     }
 
+    // ── page keys and content references ─────────────────────────────────────
+
+    private static SeedNode Keyed(string key, int count = 1) => new(typeof(object), count: count, key: key);
+
+    private static SeedNode Pointing(string property, string key)
+        => new(typeof(object), references: [new ContentReferenceAssignment(property, key)]);
+
+    [Fact]
+    public void Validate_ReferenceToKeyedPageOrBlock_DoesNotThrow()
+    {
+        var tree = new SeedTree(
+            blocks: [Block("promo")],
+            nodes: [Pointing("SiteSettings", "settings"), Pointing("Promo", "promo"), Keyed("settings")]);
+
+        Assert.Null(Record.Exception(tree.Validate));
+    }
+
+    [Fact]
+    public void Validate_ReferenceToKeyOnNestedPage_DoesNotThrow()
+    {
+        var tree = new SeedTree(nodes: [new SeedNode(typeof(object),
+            references: [new ContentReferenceAssignment("SiteSettings", "settings")],
+            children: [Keyed("settings")])]);
+
+        Assert.Null(Record.Exception(tree.Validate));
+    }
+
+    [Fact]
+    public void Validate_ContentAreaNamingBlocksAndKeyedPages_DoesNotThrow()
+    {
+        var tree = new SeedTree(
+            blocks: [Block("promo")],
+            nodes: [Node(Assignment("Related", "promo", "settings")), Keyed("settings")]);
+
+        Assert.Null(Record.Exception(tree.Validate));
+    }
+
+    [Fact]
+    public void Validate_ReferenceToUnknownKey_Throws()
+    {
+        var tree = new SeedTree(nodes: [Pointing("SiteSettings", "nowhere")]);
+
+        var ex = Assert.Throws<InvalidOperationException>(tree.Validate);
+
+        Assert.Contains("nowhere", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("SiteSettings", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_DuplicatePageKey_Throws()
+    {
+        var tree = new SeedTree(nodes: [Keyed("settings"), new SeedNode(typeof(object), children: [Keyed("settings")])]);
+
+        var ex = Assert.Throws<InvalidOperationException>(tree.Validate);
+
+        Assert.Contains("settings", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_PageKeySameAsBlockId_Throws()
+    {
+        var tree = new SeedTree(blocks: [Block("promo")], nodes: [Keyed("promo")]);
+
+        var ex = Assert.Throws<InvalidOperationException>(tree.Validate);
+
+        Assert.Contains("promo", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void Validate_KeyedPageWithCountOtherThanOne_Throws(int count)
+    {
+        var tree = new SeedTree(nodes: [Keyed("settings", count)]);
+
+        var ex = Assert.Throws<InvalidOperationException>(tree.Validate);
+
+        Assert.Contains("settings", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BlankPageKey_Throws()
+        => Assert.Throws<ArgumentException>(() => new SeedNode(typeof(object), key: " "));
+
     // ── BlockDefinition construction guards ──────────────────────────────────
 
     [Fact]

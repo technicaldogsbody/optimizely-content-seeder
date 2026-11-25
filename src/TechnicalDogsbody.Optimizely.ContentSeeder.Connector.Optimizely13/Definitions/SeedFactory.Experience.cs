@@ -18,8 +18,10 @@ public static partial class SeedFactory
         IReadOnlyList<SeedNode>? children = null,
         IReadOnlyDictionary<string, VideoSource>? videos = null,
         string? instance = null,
-        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
-        => new(type, count, contentAreaAssignments, sections, configure, imageSizes, children, videos, instance, imageProviders);
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders = null,
+        string? key = null,
+        IReadOnlyList<ContentReferenceAssignment>? references = null)
+        => new(type, count, contentAreaAssignments, sections, configure, imageSizes, children, videos, instance, imageProviders, key, references);
 
     /// <summary>
     /// The content for one seed definition, including the Visual Builder section blueprints. Pass <c>null</c> for

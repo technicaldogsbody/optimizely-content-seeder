@@ -23,6 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ISectionSeeder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\LanguageTranslator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\NoSectionSeeder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Orchestration\PageLinks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\PageSeeder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\ResumeIndex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Orchestration\SaveActions.cs" />
