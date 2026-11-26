@@ -19,6 +19,8 @@ namespace TechnicalDogsbody.Optimizely.ContentSeeder.Providers.Bogus;
 ///   <item><see cref="XhtmlString"/> → lorem paragraph wrapped in &lt;p&gt;</item>
 ///   <item><see cref="ContentReference"/> in <c>imageSizes</c> → real media asset via <see cref="IImageContentFactory"/></item>
 ///   <item><see cref="ContentReference"/> not in <c>imageSizes</c> → skipped (left null)</item>
+///   <item>Local block → populated in place; block list (<c>IList&lt;TBlock&gt;</c>) → a few populated blocks, within the
+///   property's element bounds. Nested image properties are named in <c>imageSizes</c> by path, e.g. <c>"Hero.Image"</c></item>
 ///   <item>Exact name match in <see cref="IBogusPropertyMap"/></item>
 ///   <item>Suffix match in <see cref="IBogusPropertyMap"/></item>
 ///   <item>CLR type fallback via <see cref="IBogusPropertyMap.ResolveByType"/></item>
@@ -62,8 +64,21 @@ public sealed class BogusContentGenerationProvider(
         IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes,
         IReadOnlyDictionary<string, ImageProvider>? imageProviders,
         CancellationToken ct = default)
+        => await PopulateCoreAsync(content, properties, language, contentType, imageSizes, imageProviders, depth: 0,
+            languageVersion: LanguageVersionScope.IsActive, ct).ConfigureAwait(false);
+
+    private async Task PopulateCoreAsync(
+        object content,
+        IEnumerable<PropertyInfo> properties,
+        string language,
+        Type? contentType,
+        IReadOnlyDictionary<string, (int Width, int Height)>? imageSizes,
+        IReadOnlyDictionary<string, ImageProvider>? imageProviders,
+        int depth,
+        bool languageVersion,
+        CancellationToken ct)
     {
-        if (imageProviders is not null)
+        if (imageProviders is not null && depth == 0)
         {
             foreach (string name in imageProviders.Keys)
             {
@@ -118,6 +133,22 @@ public sealed class BogusContentGenerationProvider(
                 continue;
             }
 
+            // Local block (HeroBlock Hero) or block list (IList<SomeBlock>) — each block is populated like any other
+            // content, with the image entries whose path starts with this property's name ("Hero.Image"). A rule on the
+            // seed definition for the property itself still wins, so it is handled with the other values below.
+            bool isList = _model.TryGetBlockListItemType(prop.PropertyType, out var itemType);
+            if ((isList || _model.IsLocalBlock(prop.PropertyType))
+                && definitionAccessor?.Current?.Generators?.Resolve(
+                    contentType ?? _model.GetOriginalType(content), prop.Name, language, SeedInstanceScope.Current) is null)
+            {
+                var nested = new NestedImages(ChildMap(imageSizes, prop.Name), ChildMap(imageProviders, prop.Name));
+                if (isList)
+                    await PopulateBlockListAsync(content, prop, itemType!, faker, language, nested, depth, ct).ConfigureAwait(false);
+                else
+                    await PopulateLocalBlockAsync(content, prop, language, nested, depth, languageVersion, ct).ConfigureAwait(false);
+                continue;
+            }
+
             try
             {
                 // A rule on the seed definition wins over the global map and the built-in heuristics.
@@ -137,6 +168,129 @@ public sealed class BogusContentGenerationProvider(
                     prop.Name, content.GetType().Name);
             }
         }
+    }
+
+    // Local blocks and block lists can nest (a block whose own list holds blocks); this stops a block type that lists itself.
+    internal const int MaxBlockDepth = 3;
+
+    // Default number of items when the property sets no upper bound.
+    private const int DefaultMaxBlockListItems = 3;
+
+    private sealed record NestedImages(
+        IReadOnlyDictionary<string, (int Width, int Height)>? Sizes,
+        IReadOnlyDictionary<string, ImageProvider>? Providers);
+
+    // The entries of an image map for the blocks of one property, with that property's name removed from the path:
+    // "FooterColumns.Image" becomes "Image" for each block of FooterColumns. Null when there are none.
+    internal static IReadOnlyDictionary<string, T>? ChildMap<T>(IReadOnlyDictionary<string, T>? map, string propertyName)
+    {
+        if (map is null)
+            return null;
+
+        string prefix = propertyName + ".";
+        Dictionary<string, T>? child = null;
+        foreach (var (key, value) in map)
+        {
+            if (key.Length > prefix.Length && key.StartsWith(prefix, StringComparison.Ordinal))
+                (child ??= new Dictionary<string, T>(StringComparer.Ordinal))[key[prefix.Length..]] = value;
+        }
+
+        return child;
+    }
+
+    private async Task PopulateLocalBlockAsync(
+        object content, PropertyInfo prop, string language, NestedImages images, int depth, bool languageVersion, CancellationToken ct)
+    {
+        if (depth >= MaxBlockDepth)
+            return;
+
+        try
+        {
+            // The CMS creates a local block with its owner, so it is filled in place. One that is missing is created.
+            object? block = prop.CanRead ? prop.GetValue(content) : null;
+            bool created = block is null;
+            block ??= _model.CreateBlock(prop.PropertyType);
+
+            // In a language version, a local block's properties that are not culture-specific belong to the master.
+            await PopulateCoreAsync(block, _model.WritableBlockProperties(prop.PropertyType, cultureSpecificOnly: languageVersion),
+                language, prop.PropertyType, images.Sizes, images.Providers, depth + 1, languageVersion, ct).ConfigureAwait(false);
+
+            if (created)
+                prop.SetValue(content, block);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "Failed to populate local block {PropertyName} on {ContentType}. Skipping.",
+                prop.Name, content.GetType().Name);
+        }
+    }
+
+    private async Task PopulateBlockListAsync(
+        object content, PropertyInfo prop, Type itemType, Faker faker, string language, NestedImages images, int depth, CancellationToken ct)
+    {
+        if (depth >= MaxBlockDepth)
+            return;
+
+        try
+        {
+            var (min, max) = BlockListBounds(prop);
+            int count = faker.Random.Int(min, max);
+
+            var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemType))!;
+            // The list as a whole belongs to one language version, so every property of its items is written.
+            var itemProps = _model.WritableBlockProperties(itemType, cultureSpecificOnly: false);
+
+            for (int i = 0; i < count; i++)
+            {
+                object item = _model.CreateBlock(itemType);
+                await PopulateCoreAsync(item, itemProps, language, itemType, images.Sizes, images.Providers, depth + 1, languageVersion: false, ct)
+                    .ConfigureAwait(false);
+                list.Add(item);
+            }
+
+            prop.SetValue(content, list);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "Failed to create block list items for {PropertyName} on {ContentType}. Skipping.",
+                prop.Name, content.GetType().Name);
+        }
+    }
+
+    // The item count range for a block list: at least one item, and no more than DefaultMaxBlockListItems unless the
+    // property's own bounds say otherwise. Bounds come from [MinElements]/[MaxElements] (matched by name, since they are
+    // usually defined in the site's own code), or from [MinLength]/[MaxLength]/[Length].
+    internal static (int Min, int Max) BlockListBounds(PropertyInfo prop)
+    {
+        int? min = null, max = null;
+
+        foreach (var attr in prop.GetCustomAttributesData())
+        {
+            string name = attr.AttributeType.Name;
+            int[] ints = attr.ConstructorArguments
+                .Where(a => a.ArgumentType == typeof(int) && a.Value is int)
+                .Select(a => (int)a.Value!)
+                .ToArray();
+
+            switch (name)
+            {
+                case "MinElementsAttribute" or "MinLengthAttribute" or "MinItemsAttribute" when ints.Length > 0:
+                    min = ints[0];
+                    break;
+                case "MaxElementsAttribute" or "MaxLengthAttribute" or "MaxItemsAttribute" when ints.Length > 0:
+                    max = ints[0];
+                    break;
+                case "LengthAttribute" when ints.Length > 1:
+                    (min, max) = (ints[0], ints[1]);
+                    break;
+            }
+        }
+
+        int lo = Math.Max(1, min ?? 1);
+        int hi = max is > 0 ? Math.Min(max.Value, Math.Max(lo, DefaultMaxBlockListItems)) : Math.Max(lo, DefaultMaxBlockListItems);
+        return (lo, Math.Max(lo, hi));
     }
 
     // A rule's rich text becomes the CMS's rich text value. A rule may also return a plain string for a rich text

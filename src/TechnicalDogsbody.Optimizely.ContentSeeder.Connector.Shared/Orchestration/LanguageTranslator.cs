@@ -46,6 +46,9 @@ internal sealed class LanguageTranslator(
         CancellationToken ct,
         IReadOnlyDictionary<string, ImageProvider>? imageProviders = null)
     {
+        // Tells the providers this is a language version, so a local block gets only its culture-specific values.
+        using var _ = LanguageVersionScope.Enter();
+
         if (contentGenerationProvider is IContentTranslationProvider translator
             && contentLoader.TryGet<IContentData>(
                 masterRef.ToReferenceWithoutVersion(), Cultures.Resolve(masterLanguage, logger), out var master))

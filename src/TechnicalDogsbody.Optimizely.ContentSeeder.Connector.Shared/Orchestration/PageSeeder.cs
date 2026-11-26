@@ -398,12 +398,10 @@ internal sealed class PageSeeder(
             .Invoke(contentRepository, [masterRef, Cultures.Resolve(language, logger)])!;
 
         // Use the concrete type (not the Castle proxy) — see CreateBlockLanguageBranchAsync for rationale.
-        // For language branches only populate [CultureSpecific] properties. Page properties
-        // without [CultureSpecific] are "common" — EPiServer shares them from the master language
+        // For language branches only populate [CultureSpecific] properties (and the culture-specific properties of local
+        // blocks). Page properties without [CultureSpecific] are "common" — EPiServer shares them from the master language
         // version and will warn (and silently discard) any attempt to save them on a branch.
-        var props = GetContentProperties(node.Type)
-            .Where(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null)
-            .ToList();
+        var props = GetLanguageVersionProperties(node.Type);
         await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, node.Type, node.ImageSizes, node.Videos, ct, node.ImageProviders).ConfigureAwait(false);
         LanguageTranslator.ConfigureLanguageVersion(branch, node.Configure, instanceIndex, node.Type);
 

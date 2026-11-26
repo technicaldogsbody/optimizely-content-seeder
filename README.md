@@ -436,6 +436,26 @@ A rule can also be given for one language, by its CMS language tag. Add a langua
 - **Rules apply to derived types too**, and a rule on a more derived type wins over one on its base type.
 - **Rules are not part of the "definition changed" check.** Changing them needs a **Reseed** to apply.
 
+### Local blocks and block lists
+
+A local block property (`public virtual HeroBlock Hero`) is filled in place: its properties are populated the same way as any other content. A block list property (`IList<FooterColumnBlock>`) is given 1 to 3 new blocks, each populated the same way. Generator rules and writing briefs for the block type (`ForContentType<FooterColumnBlock>`) apply to these blocks.
+
+- **Item count:** the property's bounds are respected: `[MinElements(n)]` and `[MaxElements(n)]` (matched by attribute name, so your own attributes work), or `[MinLength]`, `[MaxLength]` and `[Length]`. A property that needs more than 3 items gets its minimum.
+- **Images:** name a nested image property in `imageSizes` by its path. The path applies to every item of a list:
+
+  ```csharp
+  imageSizes: new Dictionary<string, (int, int)>
+  {
+      ["Hero.Image"] = (1600, 600),         // the local block's image
+      ["FooterColumns.Logo"] = (200, 80),   // the logo of every footer column
+  }
+  ```
+
+  `imageProviders` and the `Image(...)` helper take the same paths.
+- **AI:** the AI provider writes the text of local blocks and list items in the same request as the item's own text, so it all reads as one piece. A language version keeps the master's items, in the same order, and their text is translated.
+- **Depth:** blocks inside blocks are filled up to three levels deep.
+- A generator rule on the block or list property itself replaces this behaviour.
+
 ### Rich text (`XhtmlString`)
 
 A rich text property can be filled with generated HTML rather than a single plain paragraph. `RichText` takes a configuration callback:
@@ -736,6 +756,7 @@ definition in the list shows its page count, whether it is changed, and whether 
 | Seed | Creates the content that is missing for the chosen definition, or for all definitions. |
 | Reseed | Deletes the chosen definition's seeded content and builds it again from its current definition. |
 | Delete | Permanently deletes the chosen definition's seeded content and its images. Choosing **All definitions** clears everything. |
+| Stop | Shown while a Seed, Reseed or Delete runs. The run stops after the item it is working on. Content created so far is kept, and the next **Seed** carries on from there. A stopped run sends no completion email or notification. |
 
 Definitions don't affect each other. Seeding, reseeding or deleting one definition never changes another definition's
 pages, blocks, sections or images, so each definition can have its own home page. A definition that has been removed

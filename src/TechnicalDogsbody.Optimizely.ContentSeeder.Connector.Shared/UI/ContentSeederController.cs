@@ -87,7 +87,7 @@ public sealed class ContentSeederController(
             return error;
 
         return LaunchBackgroundOperation(Name("Seed", definitionId),
-            scope => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new SeedCommand(definitionId)).AsTask());
+            (scope, stop) => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new SeedCommand(definitionId), stop).AsTask());
     }
 
     // ── POST /api/contentseeder/reseed ───────────────────────────────────────
@@ -111,7 +111,7 @@ public sealed class ContentSeederController(
             return blocked;
 
         return LaunchBackgroundOperation(Name("Reseed", definitionId),
-            scope => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new ReseedCommand(definitionId)).AsTask());
+            (scope, stop) => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new ReseedCommand(definitionId), stop).AsTask());
     }
 
     // ── POST /api/contentseeder/delete ───────────────────────────────────────
@@ -133,7 +133,26 @@ public sealed class ContentSeederController(
             return blocked;
 
         return LaunchBackgroundOperation(Name("Delete", definitionId),
-            scope => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new DeleteAllCommand(definitionId)).AsTask());
+            (scope, stop) => scope.ServiceProvider.GetRequiredService<IMediator>().SendAsync(new DeleteAllCommand(definitionId), stop).AsTask());
+    }
+
+    // ── POST /api/contentseeder/cancel ───────────────────────────────────────
+
+    /// <summary>
+    /// POST api/contentseeder/cancel: asks the running seed, reseed or delete to stop. Returns 202 when the request is
+    /// accepted (the operation stops at its next cancellation check, and the status shows it as stopping until then), or 409
+    /// when nothing is running. Content created before it stops is kept; the next Seed resumes from there.
+    /// </summary>
+    [HttpPost("cancel")]
+    public IActionResult Cancel()
+    {
+        string? operation = operationMonitor.Current.Name;
+        if (!operationMonitor.RequestCancel())
+            return Conflict("No operation is running.");
+
+        logger.LogInformation("ContentSeeder: {User} asked the running {Operation} operation to stop.",
+            User.Identity?.Name ?? "Someone", operation);
+        return Accepted();
     }
 
     // ── GET /api/contentseeder/editor-content ────────────────────────────────
@@ -210,7 +229,7 @@ public sealed class ContentSeederController(
             : BadRequest($"No seed definition has the id '{definitionId}'.");
     }
 
-    private IActionResult LaunchBackgroundOperation(string name, Func<IServiceScope, Task> operation)
+    private IActionResult LaunchBackgroundOperation(string name, Func<IServiceScope, CancellationToken, Task> operation)
     {
         // The completion email goes to whoever started the run: the signed-in user's address, if the CMS has one for them.
         // The sign-in name is the email address for the CMS admin accounts, so use it when no email claim is issued.
@@ -221,13 +240,20 @@ public sealed class ContentSeederController(
         if (!operationMonitor.TryBegin(name, requester, signInName))
             return Conflict("An operation is already in progress.");
 
+        // Not the request's token: the operation outlives the request. This one is cancelled from the Cancel endpoint.
+        var token = operationMonitor.Token;
         _ = Task.Run(async () =>
         {
             Exception? failure = null;
             try
             {
                 await using var scope = serviceScopeFactory.CreateAsyncScope();
-                await operation(scope).ConfigureAwait(false);
+                await operation(scope, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex) when (token.IsCancellationRequested)
+            {
+                failure = ex;
+                logger.LogWarning("ContentSeeder: {Operation} was stopped before it finished. Content created so far is kept; Seed resumes from there.", name);
             }
             catch (Exception ex)
             {

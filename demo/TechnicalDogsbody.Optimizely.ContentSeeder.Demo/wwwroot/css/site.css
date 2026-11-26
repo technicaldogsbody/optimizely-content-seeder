@@ -170,6 +170,19 @@ p { margin: 0 0 1em; }
     font-size: .9rem;
 }
 .footer-inner { display: grid; gap: .5rem; }
+.footer-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+}
+.footer-column h3 { font-size: 1rem; margin: .5rem 0; }
+.footer-column ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.footer-column a { color: var(--muted); }
+.footer-column a:hover { color: var(--accent); }
+.footer-logo { display: block; max-width: 120px; height: auto; border-radius: var(--radius); }
 .prompt { margin: 0; color: var(--text); }
 .prompt .ok { color: var(--success); }
 

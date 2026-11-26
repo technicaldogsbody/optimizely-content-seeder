@@ -148,6 +148,12 @@
     gap: 12px;
     color: var(--cs-navy);
 }
+.cs-operation__row strong { align-self: center; }
+.cs-operation__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 .cs-progress {
     position: relative;
     height: 4px;
@@ -294,6 +300,7 @@
 .cs-button--secondary:hover:not(:disabled) { background: var(--cs-blue-tint-2); }
 .cs-button--ghost { background: #fff; border-color: var(--cs-line); color: var(--cs-text); }
 .cs-button--ghost:hover:not(:disabled) { border-color: #a8a8a8; }
+.cs-button--small { min-width: 0; padding: 4px 12px; font-size: 13px; }
 .cs-button--danger { background: #fff; border-color: var(--cs-danger); color: #d42020; }
 .cs-button--danger:hover:not(:disabled) { background: var(--cs-danger-tint); }
 .cs-button--danger-solid { background: var(--cs-danger); border-color: #d42020; color: #fff; }

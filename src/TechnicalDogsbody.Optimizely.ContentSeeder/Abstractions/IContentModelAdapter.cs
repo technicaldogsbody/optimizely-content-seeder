@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+
 namespace TechnicalDogsbody.Optimizely.ContentSeeder.Abstractions;
 
 /// <summary>
@@ -20,4 +23,26 @@ public interface IContentModelAdapter
 
     /// <summary>Converts an asset handle into the value of a reference property of the given type.</summary>
     object FromAsset(Type propertyType, ContentHandle asset);
+
+    /// <summary>
+    /// True for a property that holds a list of local (inline) blocks, such as <c>IList&lt;FooterColumnBlock&gt;</c>.
+    /// <paramref name="itemType"/> is the block type of the list's items.
+    /// </summary>
+    bool TryGetBlockListItemType(Type propertyType, [NotNullWhen(true)] out Type? itemType)
+    {
+        itemType = null;
+        return false;
+    }
+
+    /// <summary>True for a property that holds a single local (inline) block, such as <c>HeroBlock Hero</c>.</summary>
+    bool IsLocalBlock(Type propertyType) => false;
+
+    /// <summary>
+    /// True for a property whose value belongs to each language version. In a language version, only these properties
+    /// of a local block are written; the others are shared from the master.
+    /// </summary>
+    bool IsCultureSpecific(PropertyInfo property) => true;
+
+    /// <summary>Creates a new, empty local block of the given type, for a local block property or a block list.</summary>
+    object CreateBlock(Type blockType) => Activator.CreateInstance(blockType)!;
 }

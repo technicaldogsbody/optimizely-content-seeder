@@ -14,6 +14,20 @@
     var experiences = children.OfType<ExperienceData>().ToList();
 }
 
+@if (Model.Banner is { Heading: not null } banner)
+{
+    <section class="page-section site-banner">
+        <div class="container">
+            @if (!ContentReference.IsNullOrEmpty(banner.Image))
+            {
+                <img class="card-media" src="@Url.ContentUrl(banner.Image)" alt="" />
+            }
+            <h2>@banner.Heading</h2>
+            <p>@banner.Message</p>
+        </div>
+    </section>
+}
+
 @if (Model.HeroArea != null)
 {
     @Html.PropertyFor(m => m.HeroArea)
@@ -114,3 +128,4 @@
         </div>
     </section>
 }
+

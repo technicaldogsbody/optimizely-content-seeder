@@ -65,12 +65,11 @@ internal sealed class BlockSeeder(
         // Use the concrete type (not the Castle proxy) to discover only user-defined properties.
         // The proxy re-exposes all EPiServer interface members (Language, Status, etc.) as public
         // properties, which causes Bogus to overwrite EPiServer's internal fields.
-        // For language branches only populate [CultureSpecific] properties. Block properties without it
+        // For language branches only populate [CultureSpecific] properties (and the culture-specific properties of local
+        // blocks). Block properties without it
         // (images, numbers, links…) are "common": EPiServer shares them from the master language version and
         // refuses to save them on a branch ("Cannot save non-culture specific property").
-        var props = GetContentProperties(blockDef.Type)
-            .Where(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null)
-            .ToList();
+        var props = GetLanguageVersionProperties(blockDef.Type);
         await translator.PopulateBranchAsync(branch, masterRef, masterLanguage, props, language, blockDef.Type, blockDef.ImageSizes, blockDef.Videos, ct, blockDef.ImageProviders).ConfigureAwait(false);
         LanguageTranslator.ConfigureLanguageVersion(branch, blockDef.Configure, 0, blockDef.Type);
 

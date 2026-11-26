@@ -586,6 +586,9 @@ public sealed class DemoSeedDefinition : IAiSeedDefinition
                 ])
             ],
             configure: (page, _) => ((StartPage)page).Name = "Home",
+            // Images inside the local banner block and in every footer column, named by path.
+            imageSizes: Image($"{nameof(StartPage.Banner)}.{nameof(SiteBannerBlock.Image)}", 1600, 400)
+                .Image($"{nameof(StartPage.FooterColumns)}.{nameof(FooterColumnBlock.Logo)}", 200, 80),
             children:
             [
                 articlePage, productPage, articleListing, kitchenSinkArticle,

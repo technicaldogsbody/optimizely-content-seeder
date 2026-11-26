@@ -110,7 +110,9 @@ public abstract class AiContentGenerationProvider(
         if (_disabledReason is not null)
             return;
 
-        var targets = SelectTextProperties(props, typeBrief, definitionAccessor.Current?.Generators, type);
+        // The item's own prose, and the prose of its local blocks and block list items, in one request, so they read as
+        // one piece.
+        var targets = CollectTargets(content, source: null, props, type, brief, typeBrief, prefix: "", depth: 0, LanguageVersionScope.IsActive);
         if (targets.Count == 0)
             return;
 
@@ -119,7 +121,7 @@ public abstract class AiContentGenerationProvider(
 
         string? json = await RequestJsonAsync(request, typeName, ct).ConfigureAwait(false);
         if (json is not null)
-            await ApplyAsync(content, targets, json, language, brief, typeName, ct).ConfigureAwait(false);
+            await ApplyAsync(targets, json, language, brief, typeName, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -136,11 +138,12 @@ public abstract class AiContentGenerationProvider(
         var brief = (definitionAccessor.Current as IAiSeedDefinition)?.WritingBrief ?? _emptyBrief;
         var type = contentType ?? target.GetType();
         var typeBrief = brief.Resolve(type, SeedInstanceScope.Current);
-        var targets = SelectTextProperties(props, typeBrief, definitionAccessor.Current?.Generators, type);
-        var proseNames = targets.Select(t => t.Property.Name).ToHashSet(StringComparer.Ordinal);
+        var ownTargets = SelectTextProperties(props, typeBrief, definitionAccessor.Current?.Generators, type);
+        var proseNames = ownTargets.Select(t => t.Property.Name).ToHashSet(StringComparer.Ordinal);
 
         // Everything except the prose being translated: share the master's value where that is safe
-        // (the same image, number, date, URL…), and generate the rest in the target locale.
+        // (the same image, number, date, URL…), and generate the rest in the target locale. Local blocks and block
+        // lists take the master's structure (the same items, in the same order), so their prose can be translated too.
         var placeholders = new List<PropertyInfo>();
         foreach (var prop in props)
         {
@@ -149,15 +152,24 @@ public abstract class AiContentGenerationProvider(
 
             if (IsShareable(prop.PropertyType))
                 prop.SetValue(target, prop.GetValue(source));
+            else if (prop.CanRead && IsBlockProperty(prop.PropertyType))
+                CopyBlockProperty(source, target, prop, depth: 0, LanguageVersionScope.IsActive);
             else
                 placeholders.Add(prop);
         }
 
         // Placeholder text in the target locale for the prose too, so if the translation fails the item is
         // still in the right language (not a copy of the master's) rather than left empty.
-        placeholders.AddRange(targets.Select(t => t.Property));
+        placeholders.AddRange(ownTargets.Select(t => t.Property));
         await fallback.PopulateAsync(target, placeholders, targetLanguage, type, imageSizes: null, ct).ConfigureAwait(false);
         ClearBlank(target, props, typeBrief.BlankProperties);
+
+        var targets = CollectTargets(target, source, props, type, brief, typeBrief, prefix: "", depth: 0, LanguageVersionScope.IsActive);
+        foreach (var nested in targets.Where(t => !ReferenceEquals(t.Owner, target)))
+        {
+            await fallback.PopulateAsync(nested.Owner, [nested.Property], targetLanguage, _model.GetOriginalType(nested.Owner), imageSizes: null, ct)
+                .ConfigureAwait(false);
+        }
 
         if (_disabledReason is not null)
             return;
@@ -166,7 +178,10 @@ public abstract class AiContentGenerationProvider(
         var translatable = new List<Target>();
         foreach (var t in targets)
         {
-            object? current = t.Property.GetValue(source);
+            if (t.Source is null)
+                continue;
+
+            object? current = t.Property.GetValue(t.Source);
             string? text = current as string ?? richText.ReadHtml(current);
             if (string.IsNullOrWhiteSpace(text))
                 continue;
@@ -182,7 +197,7 @@ public abstract class AiContentGenerationProvider(
 
         string? json = await RequestJsonAsync(request, typeName, ct).ConfigureAwait(false);
         if (json is not null)
-            await ApplyAsync(target, translatable, json, targetLanguage, brief, typeName, ct).ConfigureAwait(false);
+            await ApplyAsync(translatable, json, targetLanguage, brief, typeName, ct).ConfigureAwait(false);
     }
 
     // Sends a request and returns the reply, or null if there isn't a usable one. Never throws except
@@ -254,7 +269,123 @@ public abstract class AiContentGenerationProvider(
         }
     }
 
-    private sealed record Target(PropertyInfo Property, AiTextField Field);
+    private sealed record Target(PropertyInfo Property, AiTextField Field)
+    {
+        /// <summary>The object the property is set on: the item itself, or one of its local blocks or list items.</summary>
+        public object Owner { get; init; } = null!;
+
+        /// <summary>For translation, the matching object in the master language version.</summary>
+        public object? Source { get; init; }
+    }
+
+    // The prose targets of an item and, recursively, of its local blocks and block list items. A nested field is named
+    // by its path, so it is unique in the request: "Hero_Heading", "FooterColumns_2_Heading". Each nested block uses the
+    // writing brief for its own type, and the fields that brief leaves blank are cleared.
+    private List<Target> CollectTargets(
+        object owner, object? source, IReadOnlyList<PropertyInfo> props, Type type,
+        AiWritingBrief brief, ResolvedContentTypeBrief typeBrief, string prefix, int depth, bool languageVersion)
+    {
+        if (depth > 0)
+            ClearBlank(owner, props, typeBrief.BlankProperties);
+
+        var targets = SelectTextProperties(props, typeBrief, definitionAccessor.Current?.Generators, type)
+            .Select(t => t with { Field = t.Field with { Name = prefix + t.Field.Name }, Owner = owner, Source = source })
+            .ToList();
+
+        if (depth >= BogusContentGenerationProvider.MaxBlockDepth)
+            return targets;
+
+        foreach (var prop in props)
+        {
+            if (!prop.CanRead || typeBrief.BlankProperties.Contains(prop.Name))
+                continue;
+
+            if (_model.TryGetBlockListItemType(prop.PropertyType, out var itemType))
+            {
+                if (prop.GetValue(owner) is not System.Collections.IList items)
+                    continue;
+
+                var sourceItems = source is null ? null : prop.GetValue(source) as System.Collections.IList;
+                var itemProps = _model.WritableBlockProperties(itemType, cultureSpecificOnly: false);
+                var itemBrief = brief.Resolve(itemType, SeedInstanceScope.Current);
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (items[i] is not { } item)
+                        continue;
+                    object? sourceItem = sourceItems is not null && i < sourceItems.Count ? sourceItems[i] : null;
+                    targets.AddRange(CollectTargets(item, sourceItem, itemProps, itemType, brief, itemBrief, $"{prefix}{prop.Name}_{i + 1}_", depth + 1, languageVersion: false));
+                }
+            }
+            else if (_model.IsLocalBlock(prop.PropertyType) && prop.GetValue(owner) is { } block)
+            {
+                object? sourceBlock = source is null ? null : prop.GetValue(source);
+                var blockBrief = brief.Resolve(prop.PropertyType, SeedInstanceScope.Current);
+                targets.AddRange(CollectTargets(block, sourceBlock, _model.WritableBlockProperties(prop.PropertyType, languageVersion), prop.PropertyType,
+                    brief, blockBrief, $"{prefix}{prop.Name}_", depth + 1, languageVersion));
+            }
+        }
+
+        return targets;
+    }
+
+    private bool IsBlockProperty(Type type) => _model.IsLocalBlock(type) || _model.TryGetBlockListItemType(type, out _);
+
+    // Gives a language version the master's local block or block list: new blocks with the master's values. Rich text
+    // gets its own instance, and content areas are left alone, so nothing is shared between the two versions. A local
+    // block in a language version gets only its culture-specific values; the rest are the master's already.
+    private void CopyBlockProperty(object source, object target, PropertyInfo prop, int depth, bool languageVersion)
+    {
+        object? value = prop.GetValue(source);
+
+        if (_model.TryGetBlockListItemType(prop.PropertyType, out var itemType))
+        {
+            if (value is not System.Collections.IList items)
+            {
+                prop.SetValue(target, null);
+                return;
+            }
+
+            var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemType))!;
+            foreach (object? item in items)
+            {
+                if (item is not null)
+                    list.Add(CopyBlock(item, itemType, into: null, depth + 1, languageVersion: false));
+            }
+            prop.SetValue(target, list);
+            return;
+        }
+
+        if (value is null)
+            return;
+
+        object? existing = prop.GetValue(target);
+        object copy = CopyBlock(value, prop.PropertyType, existing, depth + 1, languageVersion);
+        if (existing is null)
+            prop.SetValue(target, copy);
+    }
+
+    private object CopyBlock(object source, Type type, object? into, int depth, bool languageVersion)
+    {
+        object block = into ?? _model.CreateBlock(type);
+        foreach (var prop in _model.WritableBlockProperties(type, languageVersion))
+        {
+            if (!prop.CanRead || _model.IsContentArea(prop.PropertyType))
+                continue;
+
+            if (IsBlockProperty(prop.PropertyType))
+            {
+                if (depth < BogusContentGenerationProvider.MaxBlockDepth)
+                    CopyBlockProperty(source, block, prop, depth, languageVersion);
+                continue;
+            }
+
+            object? value = prop.GetValue(source);
+            if (value is not null && richText.IsRichText(prop.PropertyType))
+                value = richText.FromHtml(richText.ReadHtml(value) ?? "");
+            prop.SetValue(block, value);
+        }
+        return block;
+    }
 
     private List<Target> SelectTextProperties(
         IReadOnlyList<PropertyInfo> properties, ResolvedContentTypeBrief typeBrief, ContentGenerators? generators, Type type)
@@ -296,7 +427,7 @@ public abstract class AiContentGenerationProvider(
     // ── applying the reply ───────────────────────────────────────────────────
 
     private async Task ApplyAsync(
-        object content, List<Target> targets, string json, string language, AiWritingBrief brief, string typeName, CancellationToken ct)
+        List<Target> targets, string json, string language, AiWritingBrief brief, string typeName, CancellationToken ct)
     {
         var values = ParseReply(json, targets, typeName);
         if (values is null)
@@ -311,7 +442,7 @@ public abstract class AiContentGenerationProvider(
 
             try
             {
-                target.Property.SetValue(content, target.Field.Kind == AiTextFieldKind.RichText
+                target.Property.SetValue(target.Owner, target.Field.Kind == AiTextFieldKind.RichText
                     ? richText.FromHtml(AiTextFormatting.ToHtml(text, brief.MaxParagraphs))
                     : text);
             }

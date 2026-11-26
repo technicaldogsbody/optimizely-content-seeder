@@ -76,13 +76,23 @@ public sealed record ContentSeederStatus
 /// Point-in-time view of the current (or most recent) seed/reseed/delete operation,
 /// returned to the admin UI so it can poll until a run finishes.
 /// </summary>
+/// <param name="Name">The operation: Seed, Reseed or Delete, with the definition id when it runs for one definition.</param>
+/// <param name="IsRunning">True while the operation runs.</param>
+/// <param name="StartedUtc">When it started.</param>
+/// <param name="CompletedUtc">When it finished, failed or stopped.</param>
+/// <param name="Succeeded">True when it finished, false when it failed or was stopped, null while it runs.</param>
+/// <param name="Error">The failure message, when it failed.</param>
+/// <param name="IsCancelling">True after someone asked the running operation to stop, until it stops.</param>
+/// <param name="Cancelled">True when the operation was stopped before it finished.</param>
 public sealed record SeedOperationSnapshot(
     string? Name,
     bool IsRunning,
     DateTime? StartedUtc,
     DateTime? CompletedUtc,
     bool? Succeeded,
-    string? Error)
+    string? Error,
+    bool IsCancelling = false,
+    bool Cancelled = false)
 {
     /// <summary>
     /// The snapshot reported before any operation has run.

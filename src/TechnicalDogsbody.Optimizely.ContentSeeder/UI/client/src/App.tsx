@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ContentSeederStatus, EditorChoice, OperationName, getStatus, startOperation } from './api'
+import { ContentSeederStatus, EditorChoice, OperationName, cancelOperation, getStatus, startOperation } from './api'
 import { StatusPanel } from './StatusPanel'
 import { OperationBanner } from './OperationBanner'
 import { DryRunPanel } from './DryRunPanel'
@@ -82,6 +82,11 @@ export default function App() {
     await fetchStatus()
   }
 
+  const stop = async () => {
+    await cancelOperation()
+    await fetchStatus()
+  }
+
   const counts = status ? countsOf(status) : null
   const deltas = counts && baseline.current
     ? {
@@ -113,7 +118,7 @@ export default function App() {
 
         {status && (
           <>
-            <OperationBanner operation={status.operation} now={now} />
+            <OperationBanner operation={status.operation} now={now} onCancel={stop} />
             <StatusPanel status={status} deltas={deltas} now={now} stale={loadError !== null} />
             <ActionButtons
               running={isRunning}

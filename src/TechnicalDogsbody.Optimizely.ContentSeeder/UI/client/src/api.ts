@@ -7,6 +7,10 @@ export interface SeedOperation {
   completedUtc: string | null
   succeeded: boolean | null
   error: string | null
+  /** True after Stop was pressed, until the operation stops. */
+  isCancelling: boolean
+  /** True when the operation was stopped before it finished. */
+  cancelled: boolean
 }
 
 export interface ProviderInfo {
@@ -150,4 +154,11 @@ export async function startOperation(
   if (res.status === 400) throw new Error('That seed definition no longer exists. Refresh the page.')
   if (res.status === 422) throw new Error('The pages under seeded content have changed. Check again before continuing.')
   if (!res.ok) throw new Error(`${name} failed to start (${res.status})`)
+}
+
+/** Asks the running operation to stop. It stops at its next check; content created so far is kept. */
+export async function cancelOperation(): Promise<void> {
+  const res = await fetch(`${BASE}/cancel`, { ...defaults, method: 'POST' })
+  if (res.status === 409) return // It finished before the request arrived.
+  if (!res.ok) throw new Error(`Stopping the run failed (${res.status})`)
 }

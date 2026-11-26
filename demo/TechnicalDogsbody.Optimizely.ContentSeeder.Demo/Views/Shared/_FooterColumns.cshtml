@@ -1,0 +1,32 @@
+@* The footer columns of the nearest start page above the page being viewed (or the page itself), on every page. *@
+@inject EPiServer.IContentLoader ContentLoader
+@inject EPiServer.Web.Routing.IContentRouteHelper RouteHelper
+@{
+    IList<FooterColumnBlock>? columns = null;
+    if (RouteHelper.Content is { } current)
+    {
+        var candidates = new[] { current }.Concat(ContentLoader.GetAncestors(current.ContentLink));
+        columns = candidates.OfType<StartPage>().FirstOrDefault(p => p.FooterColumns is { Count: > 0 })?.FooterColumns;
+    }
+}
+@if (columns is { Count: > 0 })
+{
+    <div class="footer-columns">
+        @foreach (var column in columns)
+        {
+            <div class="footer-column">
+                @if (!ContentReference.IsNullOrEmpty(column.Logo))
+                {
+                    <img class="footer-logo" src="@Url.ContentUrl(column.Logo)" alt="" loading="lazy" />
+                }
+                <h3>@column.Heading</h3>
+                <ul>
+                    @foreach (var link in column.Links ?? [])
+                    {
+                        <li><a href="@link.Url">@link.Text</a></li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}

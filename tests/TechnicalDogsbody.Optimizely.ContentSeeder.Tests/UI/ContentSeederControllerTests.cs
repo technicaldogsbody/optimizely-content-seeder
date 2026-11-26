@@ -283,6 +283,42 @@ public class ContentSeederControllerTests
         await WaitForOperationToFinishAsync();
     }
 
+    // ── POST /cancel ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Cancel_WhileReseeding_StopsTheRunAndRecordsItAsStopped()
+    {
+        var controller = CreateController();
+
+        // The reseed waits on the token it was given, as the orchestrator does between items.
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _orchestratorMock.Setup(o => o.ReseedAsync(It.IsAny<CancellationToken>()))
+            .Returns<CancellationToken>(async ct =>
+            {
+                started.SetResult();
+                await Task.Delay(Timeout.Infinite, ct);
+            });
+
+        await controller.Reseed(null, null, null, CancellationToken.None);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var result = controller.Cancel();
+
+        Assert.IsType<AcceptedResult>(result);
+        await WaitForOperationToFinishAsync();
+        Assert.True(_monitor.Current.Cancelled);
+        Assert.Null(_monitor.Current.Error);
+        Assert.Equal("Reseed", _monitor.Current.Name);
+    }
+
+    [Fact]
+    public void Cancel_WhenNothingIsRunning_ReturnsConflict()
+    {
+        var controller = CreateController();
+
+        Assert.IsType<ConflictObjectResult>(controller.Cancel());
+    }
+
     // ── definition-scoped operations ─────────────────────────────────────────
 
     [Fact]

@@ -46,4 +46,19 @@ internal static class ContentProperties
     internal static IEnumerable<PropertyInfo> GetContentProperties(Type type)
         => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                .Where(p => p.CanWrite && !_skipPropertyNames.Contains(p.Name));
+
+    /// <summary>
+    /// The properties a language version (not the master) may set: the [CultureSpecific] ones, and local blocks with a
+    /// [CultureSpecific] property of their own. The CMS does not allow [CultureSpecific] on a local block property, so a
+    /// local block belongs to every language version and only its culture-specific properties are set for each one.
+    /// </summary>
+    internal static List<PropertyInfo> GetLanguageVersionProperties(Type type)
+        => GetContentProperties(type)
+               .Where(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null || HasCultureSpecificProperty(p.PropertyType))
+               .ToList();
+
+    private static bool HasCultureSpecificProperty(Type propertyType)
+        => typeof(BlockData).IsAssignableFrom(propertyType)
+           && propertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                          .Any(p => p.GetCustomAttribute<CultureSpecificAttribute>() is not null);
 }
