@@ -84,7 +84,7 @@ public sealed class EditorContentGuard(
         {
             foreach (var record in await seedTracker.GetByDefinitionAsync(id, ct).ConfigureAwait(false))
             {
-                if (record.ContentType == ContentSeederRecord.ContentTypes.Page)
+                if (record.ContentType == ContentSeederRecord.ContentTypes.Page && record.ContentId > 0)
                     ids.Add(record.ContentId);
             }
         }

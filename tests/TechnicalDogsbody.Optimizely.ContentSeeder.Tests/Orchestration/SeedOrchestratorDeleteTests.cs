@@ -166,6 +166,35 @@ public class SeedOrchestratorDeleteTests
     }
 
     [Fact]
+    public async Task DeleteAllAsync_IgnoresTrackedPagesWithoutAContentId()
+    {
+        const string defId = "delete-partial-page";
+        var partialRecord = MakeRecord(
+            defId,
+            ContentSeederRecord.ContentTypes.Page,
+            0,
+            DateTime.UtcNow,
+            isPartial: true);
+
+        var trackerMock = new Mock<ISeedTracker>();
+        trackerMock.Setup(t => t.GetByDefinitionAsync(defId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { partialRecord });
+        trackerMock.Setup(t => t.TruncateAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var repoMock = new Mock<IContentRepository>();
+        var definition = new LambdaSeedDefinition(defId, () =>
+            new SeedTree(nodes: [new SeedNode(typeof(FakePage), count: 0)]));
+        var sut = CreateSut(repo: repoMock.Object, tracker: trackerMock.Object, definitions: [definition]);
+
+        await sut.DeleteAllAsync();
+
+        repoMock.Verify(
+            r => r.Delete(It.IsAny<ContentReference>(), It.IsAny<bool>(), It.IsAny<AccessLevel>()),
+            Times.Never);
+        trackerMock.Verify(t => t.TruncateAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task DeleteAllAsync_CallsTruncateAfterAllDeletes()
     {
         const string defId = "delete-truncate";

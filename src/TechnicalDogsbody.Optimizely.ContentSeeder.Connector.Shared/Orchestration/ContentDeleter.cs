@@ -48,9 +48,11 @@ internal sealed class ContentDeleter(
             : [definitionId];
 
         var records = await GetRecordsAsync(definitionIds, ct).ConfigureAwait(false);
-        var blocks = records.Where(r => r.ContentType is ContentSeederRecord.ContentTypes.Block
-                                         or ContentSeederRecord.ContentTypes.SectionInstance).ToList();
-        var pages = records.Where(r => r.ContentType == ContentSeederRecord.ContentTypes.Page).ToList();
+        var blocks = records.Where(r => r.ContentId > 0
+                                         && (r.ContentType == ContentSeederRecord.ContentTypes.Block
+                                             || r.ContentType == ContentSeederRecord.ContentTypes.SectionInstance)).ToList();
+        var pages = records.Where(r => r.ContentId > 0
+                                       && r.ContentType == ContentSeederRecord.ContentTypes.Page).ToList();
         var blueprints = records.Where(r => r.ContentType == ContentSeederRecord.ContentTypes.SectionBlueprint).ToList();
 
         foreach (var record in blocks)
