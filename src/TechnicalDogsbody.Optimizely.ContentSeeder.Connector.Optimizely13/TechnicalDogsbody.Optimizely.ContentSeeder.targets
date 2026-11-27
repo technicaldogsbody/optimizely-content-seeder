@@ -32,4 +32,29 @@
           OverwriteReadOnlyFiles="true" />
   </Target>
 
+  <!--
+    The copy above only reaches the project folder, which is the content root when the site runs from source. A published
+    site (DXP, containers, any dotnet publish) runs from the publish folder, so the zip has to be published as well.
+    Without it the CMS never registers the module and the admin page's assets 404.
+  -->
+  <Target Name="PublishContentSeederModule"
+          AfterTargets="ComputeResolvedFilesToPublishList">
+
+    <PropertyGroup>
+      <_ContentSeederModulePublishPath>modules\_protected\TechnicalDogsbody.Optimizely.ContentSeeder\TechnicalDogsbody.Optimizely.ContentSeeder.zip</_ContentSeederModulePublishPath>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(ContentSeederModuleZip)')"
+           Text="The ContentSeeder module zip was not found at $(ContentSeederModuleZip)." />
+
+    <ItemGroup>
+      <!-- A site that already publishes modules\** would otherwise hit a duplicate publish path (NETSDK1152). -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'$([System.String]::Copy(&quot;%(ResolvedFileToPublish.RelativePath)&quot;).Replace(&quot;/&quot;, &quot;\&quot;))' == '$(_ContentSeederModulePublishPath)'" />
+      <ResolvedFileToPublish Include="$(ContentSeederModuleZip)"
+                             RelativePath="$(_ContentSeederModulePublishPath)"
+                             CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>
